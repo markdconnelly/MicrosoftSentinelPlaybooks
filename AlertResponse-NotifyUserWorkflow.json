@@ -50,9 +50,6 @@
                             },
                             "path": "/approvalmail/$subscriptions"
                         },
-                        "limit": {
-                            "timeout": "240"
-                        },
                         "runAfter": {
                             "Get_Director's_UPN": [
                                 "Succeeded"
@@ -84,9 +81,6 @@
                                 }
                             },
                             "path": "/flowbot/actions/messagewithoptions/recipienttypes/user/$subscriptions"
-                        },
-                        "limit": {
-                            "timeout": "240"
                         },
                         "runAfter": {
                             "Get_Director's_UPN": [
