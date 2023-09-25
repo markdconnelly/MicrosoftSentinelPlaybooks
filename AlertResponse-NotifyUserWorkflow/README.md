@@ -1,19 +1,19 @@
 # Alert-Response-NotifyUserWorkflow
 
-## Step 1
-### Someone does something phishy
+> This is a Logic App that can be attached to Microsoft Sentinel to automate the workflow of reaching out to users and getting activity confirmation
+
+> This Logic App was create by Mark Connelly and can be freely used and modified as needed
+
+### Step 1 - Someone does something phishy
 ![Phishy Activity](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/01-MaliciousActivity.png)
 
-## Step 2
-### Sentinel gets an incident with an account entity attached to it
+### Step 2 - Sentinel gets an incident with an account entity attached to it
 ![Sentinel Incident](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/02-Sentinel-IncidentWithAccount-Triggered.png)
 
-## Step 3
-### Playbook executes
+### Step 3 - Playbook executes
 ![Playbook](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/03-Sentinel-RunPlaybook.png)
 
-## Step 4
-### Email get sent to user asking them if they did that
+## Step 4 - Email get sent to user asking them if they did that
 ![Email Alert](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/04-Email-AlertNotification.png)
 
 ## Step 5
