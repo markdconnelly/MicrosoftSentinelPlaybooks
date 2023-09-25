@@ -1,0 +1,786 @@
+// This Logic App is designed to prompt the end user in an incident to confirm whether the activity was actualy them or not. 
+// This workflow attempts to reach the user via email and teams.
+// This workflow will automatically elevate to the users manager and director after a given time period. 
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "For_Each_Account_In_Alert": {
+                "actions": {
+                    "Ask_User_to_Confirm_Activity_in_Email": {
+                        "inputs": {
+                            "body": {
+                                "Message": {
+                                    "Body": "This is a cybersecurity alert. Please respond quickly to avoid automatic escalation to your manager. \n\nNew Alert from Microsoft Sentinel.\nPlease respond ASAP.\nSeverity: @{triggerBody()?['object']?['properties']?['severity']}\nName: @{triggerBody()?['object']?['properties']?['title']}\nIncident URL: @{triggerBody()?['object']?['properties']?['incidentUrl']}\nDescription: @{triggerBody()?['object']?['properties']?['description']}\nEntities: @{triggerBody()?['object']?['properties']?['relatedEntities']}",
+                                    "HideHTMLMessage": false,
+                                    "Importance": "High",
+                                    "Options": "This was me, This was not me",
+                                    "ShowHTMLConfirmationDialog": false,
+                                    "Subject": "Security Alert-Initial Feedback: @{triggerBody()?['object']?['properties']?['title']}",
+                                    "To": "@body('Get_User_UPN')?['mail']"
+                                },
+                                "NotificationUrl": "@{listCallbackUrl()}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['office365']['connectionId']"
+                                }
+                            },
+                            "path": "/approvalmail/$subscriptions"
+                        },
+                        "limit": {
+                            "timeout": "240"
+                        },
+                        "runAfter": {
+                            "Get_Director's_UPN": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnectionWebhook"
+                    },
+                    "Ask_User_to_Confirm_Activity_in_Teams": {
+                        "inputs": {
+                            "body": {
+                                "body": {
+                                    "messageBody": "New Alert from Microsoft Sentinel.\nPlease respond ASAP.\nSeverity: @{triggerBody()?['object']?['properties']?['severity']}\nName: @{triggerBody()?['object']?['properties']?['title']}\nIncident URL: @{triggerBody()?['object']?['properties']?['incidentUrl']}\nDescription: @{triggerBody()?['object']?['properties']?['description']}\nEntities: @{triggerBody()?['object']?['properties']?['relatedEntities']}",
+                                    "messageTitle": "Security Alert-Initial Feedback: @{triggerBody()?['object']?['properties']?['title']}",
+                                    "options": [
+                                        "This was me",
+                                        "This was not me"
+                                    ],
+                                    "recipient": {
+                                        "isAlert": true,
+                                        "summary": "This is a cybersecurity alert. Please respond within 15 minutes to avoid automatic escalation to your manager. ",
+                                        "to": "@body('Get_User_UPN')?['userPrincipalName']"
+                                    }
+                                },
+                                "notificationUrl": "@{listCallbackUrl()}"
+                            },
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['teams']['connectionId']"
+                                }
+                            },
+                            "path": "/flowbot/actions/messagewithoptions/recipienttypes/user/$subscriptions"
+                        },
+                        "limit": {
+                            "timeout": "240"
+                        },
+                        "runAfter": {
+                            "Get_Director's_UPN": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnectionWebhook"
+                    },
+                    "Condition": {
+                        "actions": {},
+                        "else": {
+                            "actions": {
+                                "Add_Comment_-_Director_Escalation": {
+                                    "inputs": {
+                                        "body": {
+                                            "incidentArmId": "@triggerBody()?['object']?['id']",
+                                            "message": "<p>No response has been recieved from @{body('Get_User_UPN')?['displayName']}<br>\n<br>\nThis incident was escalated to @{body('Get_Manager''s_UPN')?['displayName']}, the manager, and no response has been recieved since then either. <br>\n<br>\nEscalated to the director @{body('Get_Director''s_UPN')?['displayName']}</p>"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/Incidents/Comment"
+                                    },
+                                    "runAfter": {
+                                        "Send_an_Escalation_Email_to_Director": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                },
+                                "Send_an_Escalation_Email_to_Director": {
+                                    "inputs": {
+                                        "body": {
+                                            "Body": "<p>@{body('Get_User_UPN')?['displayName']}triggered the alert <br>\nat <br>\n<br>\nAs a result of this alert, several messages were sent to @{body('Get_User_UPN')?['displayName']}asking them if this was valid activity or not. No response has been received from these messages.<br>\n<br>\nThis incident was escalated to @{body('Get_Manager''s_UPN')?['displayName']}after that to try and get a response from the employee. There still has been no response so we are escalating to you. <br>\n<br>\nCan you reach out to your employee and ask them to respond to the original messages please?</p>",
+                                            "Cc": "@{body('Get_Manager''s_UPN')?['mail']}@{body('Get_User_UPN')?['mail']}",
+                                            "Importance": "High",
+                                            "Subject": "Alert Escalation: @{triggerBody()?['object']?['properties']?['title']}",
+                                            "To": "@body('Get_Director''s_UPN')?['mail']"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['office365']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/v2/Mail"
+                                    },
+                                    "runAfter": {},
+                                    "type": "ApiConnection"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@variables('UserResponded')",
+                                        true
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Determine_How_Long_to_Wait_Before_Escalating_to_Director": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Determine_How_Long_to_Wait_Before_Escalating_to_Director": {
+                        "cases": {
+                            "Severity_=_Critical_-_Director": {
+                                "actions": {
+                                    "Wait_30_Minutes_Before_Escalating_to_Director": {
+                                        "inputs": {
+                                            "interval": {
+                                                "count": 30,
+                                                "unit": "Minute"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "Wait"
+                                    }
+                                },
+                                "case": "Critical"
+                            },
+                            "Severity_=_High_-_Director": {
+                                "actions": {
+                                    "Wait_60_Minutes_Before_Escalating_to_Director": {
+                                        "inputs": {
+                                            "interval": {
+                                                "count": 60,
+                                                "unit": "Minute"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "Wait"
+                                    }
+                                },
+                                "case": "High"
+                            },
+                            "Severity_=_Medium_-_Director": {
+                                "actions": {
+                                    "Wait_120_Minutes_Before_Escalating_to_Director": {
+                                        "inputs": {
+                                            "interval": {
+                                                "count": 120,
+                                                "unit": "Minute"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "Wait"
+                                    }
+                                },
+                                "case": "Medium"
+                            }
+                        },
+                        "default": {
+                            "actions": {
+                                "Wait_240_Minutes_Before_Escalating_to_Director": {
+                                    "inputs": {
+                                        "interval": {
+                                            "count": 240,
+                                            "unit": "Minute"
+                                        }
+                                    },
+                                    "runAfter": {},
+                                    "type": "Wait"
+                                }
+                            }
+                        },
+                        "expression": "@triggerBody()?['object']?['properties']?['severity']",
+                        "runAfter": {
+                            "Get_Director's_UPN": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Switch"
+                    },
+                    "Determine_How_Long_to_Wait_Before_Escalating_to_Manager": {
+                        "cases": {
+                            "Severity_=_Critical_-_Manager": {
+                                "actions": {
+                                    "Wait_15_Minutes_Before_Escalating_to_Manager": {
+                                        "inputs": {
+                                            "interval": {
+                                                "count": 15,
+                                                "unit": "Minute"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "Wait"
+                                    }
+                                },
+                                "case": "Critical"
+                            },
+                            "Severity_=_High_-_Manager": {
+                                "actions": {
+                                    "Wait_30_Minutes_Before_Escalating_to_Manager": {
+                                        "inputs": {
+                                            "interval": {
+                                                "count": 30,
+                                                "unit": "Minute"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "Wait"
+                                    }
+                                },
+                                "case": "High"
+                            },
+                            "Severity_=_Medium_-_Manager": {
+                                "actions": {
+                                    "Wait_60_Minutes_Before_Escalating_to_Manager": {
+                                        "inputs": {
+                                            "interval": {
+                                                "count": 60,
+                                                "unit": "Minute"
+                                            }
+                                        },
+                                        "runAfter": {},
+                                        "type": "Wait"
+                                    }
+                                },
+                                "case": "Medium"
+                            }
+                        },
+                        "default": {
+                            "actions": {
+                                "Wait_120_Minutes_Before_Escalating_to_Manager": {
+                                    "inputs": {
+                                        "interval": {
+                                            "count": 120,
+                                            "unit": "Minute"
+                                        }
+                                    },
+                                    "runAfter": {},
+                                    "type": "Wait"
+                                }
+                            }
+                        },
+                        "expression": "@triggerBody()?['object']?['properties']?['severity']",
+                        "runAfter": {
+                            "Get_Director's_UPN": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Switch"
+                    },
+                    "Get_Director's_UPN": {
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['office365users']['connectionId']"
+                                }
+                            },
+                            "method": "get",
+                            "path": "/codeless/v1.0/users/@{encodeURIComponent(body('Get_Manager''s_UPN')?['userPrincipalName'])}/manager"
+                        },
+                        "runAfter": {
+                            "Get_Manager's_UPN": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    },
+                    "Get_Manager's_UPN": {
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['office365users']['connectionId']"
+                                }
+                            },
+                            "method": "get",
+                            "path": "/codeless/v1.0/users/@{encodeURIComponent(body('Get_User_UPN')?['userPrincipalName'])}/manager"
+                        },
+                        "runAfter": {
+                            "Get_User_UPN": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "ApiConnection"
+                    },
+                    "Get_User_UPN": {
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "name": "@parameters('$connections')['azuread']['connectionId']"
+                                }
+                            },
+                            "method": "get",
+                            "path": "/v1.0/users/@{encodeURIComponent('concat(items(''For_each'')?[''Name''], ''@'' ,items(''For_each'')?[''UPNSuffix''])')}"
+                        },
+                        "runAfter": {},
+                        "type": "ApiConnection"
+                    },
+                    "Has_User_Responded_-_Manager": {
+                        "actions": {},
+                        "else": {
+                            "actions": {
+                                "Add_Comment_-_Manager_Escalation": {
+                                    "inputs": {
+                                        "body": {
+                                            "incidentArmId": "@triggerBody()?['object']?['id']",
+                                            "message": "<p>No response has been recieved from @{body('Get_User_UPN')?['displayName']}<br>\n<br>\nThis incident has been escalated to @{body('Get_Manager''s_UPN')?['displayName']}, the manager, to get a response from the end user.&nbsp;</p>"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/Incidents/Comment"
+                                    },
+                                    "runAfter": {
+                                        "Send_an_Escalation_Email_to_Manager": [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type": "ApiConnection"
+                                },
+                                "Send_an_Escalation_Email_to_Manager": {
+                                    "inputs": {
+                                        "body": {
+                                            "Body": "<p>@{body('Get_User_UPN')?['displayName']}triggered the alert <br>\nat <br>\n<br>\nAs a result of this alert, several messages were sent to @{body('Get_User_UPN')?['displayName']}asking them if this was valid activity or not. No response has been received from these messages and the incident is being escalated to you.<br>\n<br>\nCan you reach out to your employee and ask them to respond to the original messages please?</p>",
+                                            "Cc": "@body('Get_User_UPN')?['mail']",
+                                            "Importance": "High",
+                                            "Subject": "Alert Escaltion: ",
+                                            "To": "@body('Get_Manager''s_UPN')?['mail']"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['office365']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/v2/Mail"
+                                    },
+                                    "runAfter": {},
+                                    "type": "ApiConnection"
+                                }
+                            }
+                        },
+                        "expression": {
+                            "and": [
+                                {
+                                    "equals": [
+                                        "@variables('UserResponded')",
+                                        true
+                                    ]
+                                }
+                            ]
+                        },
+                        "runAfter": {
+                            "Determine_How_Long_to_Wait_Before_Escalating_to_Manager": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "If"
+                    },
+                    "Switch_\"EmailUserResponse\"": {
+                        "cases": {
+                            "Case_\"This_Was_Me\"_-_Email": {
+                                "actions": {
+                                    "Add_Comment_-_User_Confirmed_Activity_in_Email": {
+                                        "inputs": {
+                                            "body": {
+                                                "incidentArmId": "@triggerBody()?['object']?['id']",
+                                                "message": "<p>@{body('Get_User_UPN')?['displayName']} has confirmed via email that the activity in the alert was from them and expected. <br>\n<br>\nUser Response: @{body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']}<br>\nMail Response: @{body('Ask_User_to_Confirm_Activity_in_Email')}</p>"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/Incidents/Comment"
+                                        },
+                                        "runAfter": {
+                                            "Set_\"User_Responded\"_to_\"true\"_-_Email_Approval": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    },
+                                    "Send_Email_Response_\"Yes\"_Confirmation_Email": {
+                                        "inputs": {
+                                            "body": {
+                                                "Body": "<p>Thank you for confirming that this activity was you. Your continued cooperation is what helps keep this company safe. We have updated the incident with your response and no further action is needed at this time. Should anything else be required, our cybersecurity team will reach out directly.&nbsp;</p>",
+                                                "Importance": "Normal",
+                                                "Subject": "Confirmation Recieved: @{triggerBody()?['object']?['properties']?['title']}",
+                                                "To": "@body('Get_User_UPN')?['mail']"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['office365']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/v2/Mail"
+                                        },
+                                        "runAfter": {
+                                            "Add_Comment_-_User_Confirmed_Activity_in_Email": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    },
+                                    "Set_\"User_Responded\"_to_\"true\"_-_Email_Approval": {
+                                        "inputs": {
+                                            "name": "UserResponded",
+                                            "value": true
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "case": "This was me"
+                            },
+                            "Case_\"This_Was_Not_Me\"_-_Email": {
+                                "actions": {
+                                    "Add_Comment_-_User_Rejected_Activity_in_Email": {
+                                        "inputs": {
+                                            "body": {
+                                                "incidentArmId": "@triggerBody()?['object']?['id']",
+                                                "message": "<p>******USER REJECTED ACTIVITY******<br>\n<br>\n@{body('Get_User_UPN')?['displayName']} has confirmed through Microsoft Teams that this activity is not from them. Please proceed with investigating further.<br>\n<br>\nMail Response: @{body('Ask_User_to_Confirm_Activity_in_Email')}<br>\n<br>\n******USER REJECTED ACTIVITY******<br>\n<br>\nResponse: @{body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']}</p>"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/Incidents/Comment"
+                                        },
+                                        "runAfter": {
+                                            "Set_\"User_Responded\"_to_\"true\"_-_Email_Rejected": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    },
+                                    "Send_Email_Response_\"No\"_Confirmation_Email": {
+                                        "inputs": {
+                                            "body": {
+                                                "Body": "<p>Thank you for confirming that this activity was not you. Your continued cooperation is what helps keep this company safe. We have updated the incident with your response and will continue to investigate. If you experience any further account distruptions, please contact cybersecurity.&nbsp;</p>",
+                                                "Importance": "Normal",
+                                                "Subject": "Confirmation Recieved: @{triggerBody()?['object']?['properties']?['title']}",
+                                                "To": "@body('Get_User_UPN')?['mail']"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['office365']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/v2/Mail"
+                                        },
+                                        "runAfter": {
+                                            "Add_Comment_-_User_Rejected_Activity_in_Email": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    },
+                                    "Set_\"User_Responded\"_to_\"true\"_-_Email_Rejected": {
+                                        "inputs": {
+                                            "name": "UserResponded",
+                                            "value": true
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "case": "This was not me"
+                            }
+                        },
+                        "default": {
+                            "actions": {
+                                "Add_Comment_-_No_Response_in_Email": {
+                                    "inputs": {
+                                        "body": {
+                                            "incidentArmId": "@triggerBody()?['object']?['id']",
+                                            "message": "<p>The prompt timed out in email before it could complete.&nbsp;</p>"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/Incidents/Comment"
+                                    },
+                                    "runAfter": {},
+                                    "type": "ApiConnection"
+                                }
+                            }
+                        },
+                        "expression": "@body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']",
+                        "runAfter": {
+                            "Ask_User_to_Confirm_Activity_in_Email": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Switch"
+                    },
+                    "Switch_\"TeamsUserResponse\"": {
+                        "cases": {
+                            "Case_\"This_Was_Me\"_-_Teams": {
+                                "actions": {
+                                    "Add_Comment_-_User_Confirmed_Activity_in_Teams": {
+                                        "inputs": {
+                                            "body": {
+                                                "incidentArmId": "@triggerBody()?['object']?['id']",
+                                                "message": "<p>@{body('Get_User_UPN')?['displayName']} has confirmed that the activity in the alert was from them and expected via Microsoft Teams.<br>\n<br>\nResponse: @{body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']}<br>\nResponse Time: @{body('Ask_User_to_Confirm_Activity_in_Teams')['responseTime']}</p>"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/Incidents/Comment"
+                                        },
+                                        "runAfter": {
+                                            "Set_\"User_Responded\"_to_\"true\"_-_Teams_Approval": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    },
+                                    "Send_Teams_Response_\"Yes\"_Confirmation_Email": {
+                                        "inputs": {
+                                            "body": {
+                                                "Body": "<p>Thank you for confirming that this activity was you. Your continued cooperation is what helps keep this company safe. We have updated the incident with your response and no further action is needed at this time. Should anything else be required, our cybersecurity team will reach out directly.&nbsp;</p>",
+                                                "Importance": "Normal",
+                                                "Subject": "Confirmation Recieved: @{triggerBody()?['object']?['properties']?['title']}",
+                                                "To": "@body('Get_User_UPN')?['mail']"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['office365']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/v2/Mail"
+                                        },
+                                        "runAfter": {
+                                            "Add_Comment_-_User_Confirmed_Activity_in_Teams": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    },
+                                    "Set_\"User_Responded\"_to_\"true\"_-_Teams_Approval": {
+                                        "inputs": {
+                                            "name": "UserResponded",
+                                            "value": true
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "case": "This was me"
+                            },
+                            "Case_\"This_Was_Not_Me\"_-_Teams": {
+                                "actions": {
+                                    "Add_Comment_-_User_Rejected_Activity_in_Teams": {
+                                        "inputs": {
+                                            "body": {
+                                                "incidentArmId": "@triggerBody()?['object']?['id']",
+                                                "message": "<p><br>\n******USER REJECTED ACTIVITY******<br>\n<br>\n@{body('Get_User_UPN')?['displayName']} has confirmed through Microsoft Teams that this activity is not from them. Please proceed with investigating further.<br>\n<br>\n******USER REJECTED ACTIVITY******<br>\n<br>\nResponse: @{body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']}<br>\nResponse Time: @{body('Ask_User_to_Confirm_Activity_in_Teams')['responseTime']}</p>"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/Incidents/Comment"
+                                        },
+                                        "runAfter": {
+                                            "Set_\"User_Responded\"_to_\"true\"_-_Teams_Rejected": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    },
+                                    "Send_Teams_Response_\"No\"_Confirmation_Email": {
+                                        "inputs": {
+                                            "body": {
+                                                "Body": "<p>Thank you for confirming that this activity was not you. Your continued cooperation is what helps keep this company safe. We have updated the incident with your response and will continue to investigate. If you experience any further account disruptions, please contact cybersecurity.&nbsp;</p>",
+                                                "Importance": "Normal",
+                                                "Subject": "Confirmation Recieved: @{triggerBody()?['object']?['properties']?['title']}",
+                                                "To": "@body('Get_User_UPN')?['mail']"
+                                            },
+                                            "host": {
+                                                "connection": {
+                                                    "name": "@parameters('$connections')['office365']['connectionId']"
+                                                }
+                                            },
+                                            "method": "post",
+                                            "path": "/v2/Mail"
+                                        },
+                                        "runAfter": {
+                                            "Add_Comment_-_User_Rejected_Activity_in_Teams": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "ApiConnection"
+                                    },
+                                    "Set_\"User_Responded\"_to_\"true\"_-_Teams_Rejected": {
+                                        "inputs": {
+                                            "name": "UserResponded",
+                                            "value": true
+                                        },
+                                        "runAfter": {},
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "case": "This was not me"
+                            }
+                        },
+                        "default": {
+                            "actions": {
+                                "Add_Comment_-_No_Response_in_Teams": {
+                                    "inputs": {
+                                        "body": {
+                                            "incidentArmId": "@triggerBody()?['object']?['id']",
+                                            "message": "<p>The prompt timed out in teams before it could complete.&nbsp;</p>"
+                                        },
+                                        "host": {
+                                            "connection": {
+                                                "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "path": "/Incidents/Comment"
+                                    },
+                                    "runAfter": {},
+                                    "type": "ApiConnection"
+                                }
+                            }
+                        },
+                        "expression": "@body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']",
+                        "runAfter": {
+                            "Ask_User_to_Confirm_Activity_in_Teams": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Switch"
+                    }
+                },
+                "foreach": "@body('Microsoft_Sentinel_Entities_-_Get_Accounts')?['Accounts']",
+                "runAfter": {
+                    "Initialize_\"UserResponded\"_Variable": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Foreach"
+            },
+            "Initialize_\"UserResponded\"_Variable": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "UserResponded",
+                            "type": "boolean",
+                            "value": false
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Microsoft_Sentinel_Entities_-_Get_Accounts": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Microsoft_Sentinel_Entities_-_Get_Accounts": {
+                "inputs": {
+                    "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "path": "/entities/account"
+                },
+                "runAfter": {},
+                "type": "ApiConnection"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "Microsoft_Sentinel_incident": {
+                "inputs": {
+                    "body": {
+                        "callback_url": "@{listCallbackUrl()}"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
+                        }
+                    },
+                    "path": "/incident-creation"
+                },
+                "type": "ApiConnectionWebhook"
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "value": {
+                "azuread": {
+                    "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/azuread",
+                    "connectionName": "azuread",
+                    "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/azuread"
+                },
+                "azuresentinel_1": {
+                    "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/azuresentinel",
+                    "connectionName": "azuresentinel",
+                    "connectionProperties": {
+                        "authentication": {
+                            "identity": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_IdentitySecurity/providers/Microsoft.ManagedIdentity/userAssignedIdentities/CyberAutomationMI",
+                            "type": "ManagedServiceIdentity"
+                        }
+                    },
+                    "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/azuresentinel"
+                },
+                "office365": {
+                    "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/office365",
+                    "connectionName": "office365",
+                    "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/office365"
+                },
+                "office365users": {
+                    "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/office365users",
+                    "connectionName": "office365users",
+                    "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/office365users"
+                },
+                "teams": {
+                    "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/teams",
+                    "connectionName": "teams",
+                    "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/teams"
+                }
+            }
+        }
+    }
+}
