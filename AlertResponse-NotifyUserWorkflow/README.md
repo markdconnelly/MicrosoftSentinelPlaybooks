@@ -52,9 +52,9 @@
 ### If they reject it in teams, they will get a policy tip like this
 ![Teams Reject](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/13-Teams-ActivityRejected.png)
 
-## Step 2
-### Sentinel gets an incident with an account entity attached to it
-![alt text](http://url/to/img.png)
+## Step 14
+### If they reject it in teams, the incident will get a comment like this
+![Teams Reject Comment](http://url/to/img.png)
 
 ## Step 2
 ### Sentinel gets an incident with an account entity attached to it
