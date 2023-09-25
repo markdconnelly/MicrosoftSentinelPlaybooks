@@ -169,7 +169,7 @@
                                         "inputs": {
                                             "body": {
                                                 "incidentArmId": "@triggerBody()?['object']?['id']",
-                                                "message": "<p>@{body('Get_User_UPN')?['displayName']} has confirmed via email that the activity in the alert was from them and expected. <br>\n<br>\nUser Response: @{body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']}<br>\nMail Response: @{body('Ask_User_to_Confirm_Activity_in_Email')}</p>"
+                                                "message": "<p>@{body('Get_User_UPN')?['displayName']} has confirmed via email that the activity in the alert was from them and expected.<br>\n<br>\n### User Response:<br>\n @{body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']}</p>"
                                             },
                                             "host": {
                                                 "connection": {
@@ -185,9 +185,9 @@
                                     "Send_Email_Response_\"Yes\"_Confirmation_Email": {
                                         "inputs": {
                                             "body": {
-                                                "Body": "<p>@{variables('ConfmationResponseConfirmedHTML')}<br>\n<br>\nThank you for confirming that this activity was you. Your continued cooperation is what helps keep this company safe. We have updated the incident with your response and no further action is needed at this time. Should anything else be required, our cybersecurity team will reach out directly.&nbsp;</p>",
+                                                "Body": "<p>@{variables('ConfmationResponseConfirmedHTML')}</p>",
                                                 "Importance": "Normal",
-                                                "Subject": "Confirmation Recieved: @{triggerBody()?['object']?['properties']?['title']}",
+                                                "Subject": "Confirmed: @{triggerBody()?['object']?['properties']?['title']}",
                                                 "To": "@body('Get_User_UPN')?['mail']"
                                             },
                                             "host": {
@@ -214,7 +214,7 @@
                                         "inputs": {
                                             "body": {
                                                 "incidentArmId": "@triggerBody()?['object']?['id']",
-                                                "message": "<p>******USER REJECTED ACTIVITY******<br>\n<br>\n@{body('Get_User_UPN')?['displayName']} has confirmed through Microsoft Teams that this activity is not from them. Please proceed with investigating further.<br>\n<br>\nMail Response: @{body('Ask_User_to_Confirm_Activity_in_Email')}<br>\n<br>\n******USER REJECTED ACTIVITY******<br>\n<br>\nResponse: @{body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']}</p>"
+                                                "message": "<p>## USER REJECTED ACTIVITY<br>\n<br>\n@{body('Get_User_UPN')?['displayName']} has confirmed through Microsoft Teams that this activity is not from them. Please proceed with investigating further.<br>\n<br>\nMail Response: @{body('Ask_User_to_Confirm_Activity_in_Email')}<br>\n<br>\n## USER REJECTED ACTIVITY<br>\n<br>\n### User Response: @{body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']}</p>"
                                             },
                                             "host": {
                                                 "connection": {
@@ -230,7 +230,7 @@
                                     "Send_Email_Response_\"No\"_Confirmation_Email": {
                                         "inputs": {
                                             "body": {
-                                                "Body": "<p>@{variables('ConfmationResponseRejectedHTML')}<br>\n<br>\nThank you for confirming that this activity was not you. Your continued cooperation is what helps keep this company safe. We have updated the incident with your response and will continue to investigate. If you experience any further account distruptions, please contact cybersecurity.&nbsp;</p>",
+                                                "Body": "<p>@{variables('ConfmationResponseRejectedHTML')}</p>",
                                                 "Importance": "Normal",
                                                 "Subject": "Rejected: @{triggerBody()?['object']?['properties']?['title']}",
                                                 "To": "@body('Get_User_UPN')?['mail']"
@@ -260,7 +260,7 @@
                                     "inputs": {
                                         "body": {
                                             "incidentArmId": "@triggerBody()?['object']?['id']",
-                                            "message": "<p>No response from email. The prompt timed out before a response was received.&nbsp;</p>"
+                                            "message": "<p>## No Response<br>\n<br>\nNo response from email. The prompt timed out before a response was received.&nbsp;</p>"
                                         },
                                         "host": {
                                             "connection": {
@@ -291,7 +291,7 @@
                                         "inputs": {
                                             "body": {
                                                 "incidentArmId": "@triggerBody()?['object']?['id']",
-                                                "message": "<p>@{body('Get_User_UPN')?['displayName']} has confirmed that the activity in the alert was from them and expected via Microsoft Teams.<br>\n<br>\nResponse: @{body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']}<br>\nResponse Time: @{body('Ask_User_to_Confirm_Activity_in_Teams')['responseTime']}<br>\nUser Comments: @{body('Ask_User_to_Confirm_Activity_in_Teams')?['comments']}<br>\n</p>"
+                                                "message": "<p>@{body('Get_User_UPN')?['displayName']} has confirmed that the activity in the alert was from them and expected via Microsoft Teams.<br>\n<br>\n### Response: <br>\n@{body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']}<br>\n### User Comments:<br>\n @{body('Ask_User_to_Confirm_Activity_in_Teams')?['comments']}<br>\n</p>"
                                             },
                                             "host": {
                                                 "connection": {
@@ -313,7 +313,7 @@
                                         "inputs": {
                                             "body": {
                                                 "incidentArmId": "@triggerBody()?['object']?['id']",
-                                                "message": "<p><br>\n******USER REJECTED ACTIVITY******<br>\n<br>\n@{body('Get_User_UPN')?['displayName']} has confirmed through Microsoft Teams that this activity is not from them. Please proceed with investigating further.<br>\n<br>\n******USER REJECTED ACTIVITY******<br>\n<br>\nResponse: @{body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']}<br>\nResponse Time: @{body('Ask_User_to_Confirm_Activity_in_Teams')['responseTime']}</p>"
+                                                "message": "<p><br>\n## USER REJECTED ACTIVITY VIA TEAMS<br>\n<br>\n@{body('Get_User_UPN')?['displayName']} has confirmed through Microsoft Teams that this activity is not from them. Please proceed with investigating further.<br>\n<br>\n## USER REJECTED ACTIVITY VIA TEAMS******<br>\n<br>\n### Response: <br>\n@{body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']}<br>\n### User Comments: <br>\n@{body('Ask_User_to_Confirm_Activity_in_Teams')?['comments']}</p>"
                                             },
                                             "host": {
                                                 "connection": {
@@ -336,7 +336,7 @@
                                     "inputs": {
                                         "body": {
                                             "incidentArmId": "@triggerBody()?['object']?['id']",
-                                            "message": "<p>No User response received through teams. The prompt timed out before it could complete.&nbsp;</p>"
+                                            "message": "<p>## No Response <br>\nNo User response received through teams. The prompt timed out before it could complete.&nbsp;</p>"
                                         },
                                         "host": {
                                             "connection": {
