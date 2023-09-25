@@ -4,30 +4,6 @@
         "actions": {
             "For_Each_Account_In_Alert": {
                 "actions": {
-                    "Append_to_\"AccountUPN\"_Variable": {
-                        "inputs": {
-                            "name": "AccountUPN",
-                            "value": "@"
-                        },
-                        "runAfter": {
-                            "Set_\"AccountUPN\"_variable": [
-                                "Succeeded"
-                            ]
-                        },
-                        "type": "AppendToStringVariable"
-                    },
-                    "Append_to_\"AccountUPN\"_Variable_2": {
-                        "inputs": {
-                            "name": "AccountUPN",
-                            "value": "@items('For_Each_Account_In_Alert')?['UPNSuffix']"
-                        },
-                        "runAfter": {
-                            "Append_to_\"AccountUPN\"_Variable": [
-                                "Succeeded"
-                            ]
-                        },
-                        "type": "AppendToStringVariable"
-                    },
                     "Ask_User_to_Confirm_Activity_in_Email": {
                         "inputs": {
                             "body": {
@@ -38,7 +14,7 @@
                                     "Options": "This was me, This was not me",
                                     "ShowHTMLConfirmationDialog": false,
                                     "Subject": "Cyber: @{triggerBody()?['object']?['properties']?['title']}",
-                                    "To": "@body('Get_User_UPN')?['mail']",
+                                    "To": "@body('Get_User_Object_By_UPN')?['mail']",
                                     "UseOnlyHTMLMessage": true
                                 },
                                 "NotificationUrl": "@{listCallbackUrl()}"
@@ -69,7 +45,7 @@
                                     ],
                                     "recipient": {
                                         "isAlert": true,
-                                        "to": "@body('Get_User_UPN')?['userPrincipalName']"
+                                        "to": "@body('Get_User_Object_By_UPN')?['userPrincipalName']"
                                     }
                                 },
                                 "notificationUrl": "@{listCallbackUrl()}"
@@ -88,7 +64,26 @@
                         },
                         "type": "ApiConnectionWebhook"
                     },
-                    "Get_User_UPN": {
+                    "For_each": {
+                        "actions": {
+                            "Set_\"AccountUPN\"_variable": {
+                                "inputs": {
+                                    "name": "AccountUPN",
+                                    "value": "@items('For_each')?['additionalData']?['UserPrincipalName']"
+                                },
+                                "runAfter": {},
+                                "type": "SetVariable"
+                            }
+                        },
+                        "foreach": "@body('Parse_\"Accounts\"_JSON')",
+                        "runAfter": {
+                            "Parse_\"Accounts\"_JSON": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Foreach"
+                    },
+                    "Get_User_Object_By_UPN": {
                         "inputs": {
                             "host": {
                                 "connection": {
@@ -99,19 +94,69 @@
                             "path": "/v1.0/users/@{encodeURIComponent(variables('AccountUPN'))}"
                         },
                         "runAfter": {
-                            "Append_to_\"AccountUPN\"_Variable_2": [
+                            "For_each": [
                                 "Succeeded"
                             ]
                         },
                         "type": "ApiConnection"
                     },
-                    "Set_\"AccountUPN\"_variable": {
+                    "Parse_\"Accounts\"_JSON": {
                         "inputs": {
-                            "name": "AccountUPN",
-                            "value": "@items('For_Each_Account_In_Alert')?['Name']"
+                            "content": "@body('Microsoft_Sentinel_Entities_-_Get_Accounts')?['Accounts']",
+                            "schema": {
+                                "items": {
+                                    "properties": {
+                                        "Name": {
+                                            "type": "string"
+                                        },
+                                        "Type": {
+                                            "type": "string"
+                                        },
+                                        "aadUserId": {
+                                            "type": "string"
+                                        },
+                                        "accountName": {
+                                            "type": "string"
+                                        },
+                                        "additionalData": {
+                                            "properties": {
+                                                "UserPrincipalName": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "friendlyName": {
+                                            "type": "string"
+                                        },
+                                        "isDomainJoined": {
+                                            "type": "boolean"
+                                        },
+                                        "ntDomain": {
+                                            "type": "string"
+                                        },
+                                        "sid": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "accountName",
+                                        "ntDomain",
+                                        "sid",
+                                        "aadUserId",
+                                        "isDomainJoined",
+                                        "additionalData",
+                                        "friendlyName",
+                                        "Type",
+                                        "Name"
+                                    ],
+                                    "type": "object"
+                                },
+                                "type": "array"
+                            }
                         },
                         "runAfter": {},
-                        "type": "SetVariable"
+                        "type": "ParseJson"
                     },
                     "Set_\"AlertBodyHTML\"_Variable": {
                         "inputs": {
@@ -131,7 +176,7 @@
                             "value": "# Severity:\n@{triggerBody()?['object']?['properties']?['severity']}\n## Start Time:\n@{triggerBody()?['object']?['properties']?['createdTimeUtc']}\n## Description:\n> @{triggerBody()?['object']?['properties']?['description']}"
                         },
                         "runAfter": {
-                            "Get_User_UPN": [
+                            "Get_User_Object_By_UPN": [
                                 "Succeeded"
                             ]
                         },
@@ -169,7 +214,7 @@
                                         "inputs": {
                                             "body": {
                                                 "incidentArmId": "@triggerBody()?['object']?['id']",
-                                                "message": "<p>@{body('Get_User_UPN')?['displayName']} has confirmed via email that the activity in the alert was from them and expected.<br>\n<br>\n### User Response:<br>\n @{body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']}</p>"
+                                                "message": "<p>@{body('Get_User_Object_By_UPN')?['displayName']} has confirmed via email that the activity in the alert was from them and expected.<br>\n<br>\n### User Response:<br>\n @{body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']}</p>"
                                             },
                                             "host": {
                                                 "connection": {
@@ -188,7 +233,7 @@
                                                 "Body": "<p>@{variables('ConfmationResponseConfirmedHTML')}</p>",
                                                 "Importance": "Normal",
                                                 "Subject": "Confirmed: @{triggerBody()?['object']?['properties']?['title']}",
-                                                "To": "@body('Get_User_UPN')?['mail']"
+                                                "To": "@body('Get_User_Object_By_UPN')?['mail']"
                                             },
                                             "host": {
                                                 "connection": {
@@ -214,7 +259,7 @@
                                         "inputs": {
                                             "body": {
                                                 "incidentArmId": "@triggerBody()?['object']?['id']",
-                                                "message": "<p>## USER REJECTED ACTIVITY<br>\n<br>\n@{body('Get_User_UPN')?['displayName']} has confirmed through Microsoft Teams that this activity is not from them. Please proceed with investigating further.<br>\n<br>\nMail Response: @{body('Ask_User_to_Confirm_Activity_in_Email')}<br>\n<br>\n## USER REJECTED ACTIVITY<br>\n<br>\n### User Response: @{body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']}</p>"
+                                                "message": "<p>## USER REJECTED ACTIVITY<br>\n<br>\n@{body('Get_User_Object_By_UPN')?['displayName']} has confirmed through Microsoft Teams that this activity is not from them. Please proceed with investigating further.<br>\n<br>\n## USER REJECTED ACTIVITY<br>\n<br>\n### User Response: @{body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']}</p>"
                                             },
                                             "host": {
                                                 "connection": {
@@ -233,7 +278,7 @@
                                                 "Body": "<p>@{variables('ConfmationResponseRejectedHTML')}</p>",
                                                 "Importance": "Normal",
                                                 "Subject": "Rejected: @{triggerBody()?['object']?['properties']?['title']}",
-                                                "To": "@body('Get_User_UPN')?['mail']"
+                                                "To": "@body('Get_User_Object_By_UPN')?['mail']"
                                             },
                                             "host": {
                                                 "connection": {
@@ -291,7 +336,7 @@
                                         "inputs": {
                                             "body": {
                                                 "incidentArmId": "@triggerBody()?['object']?['id']",
-                                                "message": "<p>@{body('Get_User_UPN')?['displayName']} has confirmed that the activity in the alert was from them and expected via Microsoft Teams.<br>\n<br>\n### Response: <br>\n@{body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']}<br>\n### User Comments:<br>\n @{body('Ask_User_to_Confirm_Activity_in_Teams')?['comments']}<br>\n</p>"
+                                                "message": "<p>@{body('Get_User_Object_By_UPN')?['displayName']} has confirmed that the activity in the alert was from them and expected via Microsoft Teams.<br>\n<br>\n### Response: <br>\n@{body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']}<br>\n### User Comments:<br>\n @{body('Ask_User_to_Confirm_Activity_in_Teams')?['comments']}<br>\n</p>"
                                             },
                                             "host": {
                                                 "connection": {
@@ -313,7 +358,7 @@
                                         "inputs": {
                                             "body": {
                                                 "incidentArmId": "@triggerBody()?['object']?['id']",
-                                                "message": "<p><br>\n## USER REJECTED ACTIVITY VIA TEAMS<br>\n<br>\n@{body('Get_User_UPN')?['displayName']} has confirmed through Microsoft Teams that this activity is not from them. Please proceed with investigating further.<br>\n<br>\n## USER REJECTED ACTIVITY VIA TEAMS******<br>\n<br>\n### Response: <br>\n@{body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']}<br>\n### User Comments: <br>\n@{body('Ask_User_to_Confirm_Activity_in_Teams')?['comments']}</p>"
+                                                "message": "<p><br>\n## USER REJECTED ACTIVITY VIA TEAMS<br>\n<br>\n@{body('Get_User_Object_By_UPN')?['displayName']} has confirmed through Microsoft Teams that this activity is not from them. Please proceed with investigating further.<br>\n<br>\n## USER REJECTED ACTIVITY VIA TEAMS******<br>\n<br>\n### Response: <br>\n@{body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']}<br>\n### User Comments: <br>\n@{body('Ask_User_to_Confirm_Activity_in_Teams')?['comments']}</p>"
                                             },
                                             "host": {
                                                 "connection": {
