@@ -1,6 +1,3 @@
-// This Logic App is designed to prompt the end user in an incident to confirm whether the activity was actualy them or not. 
-// This workflow attempts to reach the user via email and teams.
-// This workflow will automatically elevate to the users manager and director after a given time period. 
 {
     "definition": {
         "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
@@ -319,7 +316,7 @@
                                 }
                             },
                             "method": "get",
-                            "path": "/v1.0/users/@{encodeURIComponent('concat(items(''For_each'')?[''Name''], ''@'' ,items(''For_each'')?[''UPNSuffix''])')}"
+                            "path": "/v1.0/users/@{encodeURIComponent(items('For_Each_Account_In_Alert')?['Name'])}"
                         },
                         "runAfter": {},
                         "type": "ApiConnection"
