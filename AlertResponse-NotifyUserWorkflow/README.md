@@ -32,7 +32,7 @@
 ![Teams Policy Tip](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/09-Teams-Alert%20Notification-PolicyTip.png)
 
 ### Step 10 - If they confirm in teams, a comment like this will go into the sentinel incident
-![Teams Confirm Comment](http://url/to/img.png)
+![Teams Confirm Comment](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/10-Teams-SentinelComment-ConfirmedActivity.png)
 
 ### Step 11 - If they reject the prompt via email, they will get a response like this
 ![Email Reject](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/11-Email-ActivityRejected.png)
