@@ -6,6 +6,3 @@ StartTimeVariableHere
 
 ## Description:
 > DescriptionVariableHere
-
-## URL
-[Incident URL](IncidentURLVariableHere)
