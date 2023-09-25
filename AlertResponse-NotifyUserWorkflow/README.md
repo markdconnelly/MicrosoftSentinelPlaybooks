@@ -54,12 +54,8 @@
 
 ## Step 14
 ### If they reject it in teams, the incident will get a comment like this
-![Teams Reject Comment](http://url/to/img.png)
+![Teams Reject Comment](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/14-Teams-SentinelComment-ActivityRejected.png)
 
-## Step 2
-### Sentinel gets an incident with an account entity attached to it
-![alt text](http://url/to/img.png)
-
-## Step 2
-### Sentinel gets an incident with an account entity attached to it
-![alt text](http://url/to/img.png)
+> As you can see
+> This automation workflow can quickly get user feedback to aid in an investigation
+> Feel free to grab this code to use in your environment 
