@@ -4,13 +4,25 @@
         "actions": {
             "For_Each_Account_In_Alert": {
                 "actions": {
-                    "Append_to_\"AccountUPN\"_variable": {
+                    "Append_to_\"AccountUPN\"_Variable": {
+                        "inputs": {
+                            "name": "AccountUPN",
+                            "value": "@"
+                        },
+                        "runAfter": {
+                            "Set_\"AccountUPN\"_variable": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "AppendToStringVariable"
+                    },
+                    "Append_to_\"AccountUPN\"_Variable_2": {
                         "inputs": {
                             "name": "AccountUPN",
                             "value": "@items('For_Each_Account_In_Alert')?['UPNSuffix']"
                         },
                         "runAfter": {
-                            "Set_\"AccountUPN\"_variable": [
+                            "Append_to_\"AccountUPN\"_Variable": [
                                 "Succeeded"
                             ]
                         },
@@ -20,13 +32,14 @@
                         "inputs": {
                             "body": {
                                 "Message": {
-                                    "Body": "This is a cybersecurity alert. Please respond quickly to avoid automatic escalation to your manager. \n\nNew Alert from Microsoft Sentinel.\nPlease respond ASAP.\nSeverity: @{triggerBody()?['object']?['properties']?['severity']}\nName: @{triggerBody()?['object']?['properties']?['title']}\nIncident URL: @{triggerBody()?['object']?['properties']?['incidentUrl']}\nDescription: @{triggerBody()?['object']?['properties']?['description']}\nEntities: @{triggerBody()?['object']?['properties']?['relatedEntities']}",
+                                    "Body": "This is a cybersecurity alert. Please respond quickly to avoid automatic escalation to your manager. \n\nName: \n@{triggerBody()?['object']?['properties']?['title']}\n\nDescription: \n@{triggerBody()?['object']?['properties']?['description']}\n\nSeverity:\n @{triggerBody()?['object']?['properties']?['severity']}\n\nIncident URL: \n@{triggerBody()?['object']?['properties']?['incidentUrl']}\n",
                                     "HideHTMLMessage": false,
                                     "Importance": "High",
                                     "Options": "This was me, This was not me",
                                     "ShowHTMLConfirmationDialog": false,
                                     "Subject": "Security Alert-Initial Feedback: @{triggerBody()?['object']?['properties']?['title']}",
-                                    "To": "@body('Get_User_UPN')?['mail']"
+                                    "To": "@body('Get_User_UPN')?['mail']",
+                                    "UseOnlyHTMLMessage": true
                                 },
                                 "NotificationUrl": "@{listCallbackUrl()}"
                             },
@@ -51,7 +64,7 @@
                         "inputs": {
                             "body": {
                                 "body": {
-                                    "messageBody": "New Alert from Microsoft Sentinel.\nPlease respond ASAP.\nSeverity: @{triggerBody()?['object']?['properties']?['severity']}\nName: @{triggerBody()?['object']?['properties']?['title']}\nIncident URL: @{triggerBody()?['object']?['properties']?['incidentUrl']}\nDescription: @{triggerBody()?['object']?['properties']?['description']}\nEntities: @{triggerBody()?['object']?['properties']?['relatedEntities']}",
+                                    "messageBody": "Name: \n@{triggerBody()?['object']?['properties']?['title']}\n\nDescription: \n@{triggerBody()?['object']?['properties']?['description']}\n\nSeverity: \n@{triggerBody()?['object']?['properties']?['severity']}\n\nIncident URL: \n@{triggerBody()?['object']?['properties']?['incidentUrl']}",
                                     "messageTitle": "Security Alert-Initial Feedback: @{triggerBody()?['object']?['properties']?['title']}",
                                     "options": [
                                         "This was me",
@@ -81,210 +94,6 @@
                             ]
                         },
                         "type": "ApiConnectionWebhook"
-                    },
-                    "Condition": {
-                        "actions": {},
-                        "else": {
-                            "actions": {
-                                "Add_Comment_-_Director_Escalation": {
-                                    "inputs": {
-                                        "body": {
-                                            "incidentArmId": "@triggerBody()?['object']?['id']",
-                                            "message": "<p>No response has been recieved from @{body('Get_User_UPN')?['displayName']}<br>\n<br>\nThis incident was escalated to @{body('Get_Manager''s_UPN')?['displayName']}, the manager, and no response has been recieved since then either. <br>\n<br>\nEscalated to the director @{body('Get_Director''s_UPN')?['displayName']}</p>"
-                                        },
-                                        "host": {
-                                            "connection": {
-                                                "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
-                                            }
-                                        },
-                                        "method": "post",
-                                        "path": "/Incidents/Comment"
-                                    },
-                                    "runAfter": {
-                                        "Send_an_Escalation_Email_to_Director": [
-                                            "Succeeded"
-                                        ]
-                                    },
-                                    "type": "ApiConnection"
-                                },
-                                "Send_an_Escalation_Email_to_Director": {
-                                    "inputs": {
-                                        "body": {
-                                            "Body": "<p>@{body('Get_User_UPN')?['displayName']}triggered the alert <br>\nat <br>\n<br>\nAs a result of this alert, several messages were sent to @{body('Get_User_UPN')?['displayName']}asking them if this was valid activity or not. No response has been received from these messages.<br>\n<br>\nThis incident was escalated to @{body('Get_Manager''s_UPN')?['displayName']}after that to try and get a response from the employee. There still has been no response so we are escalating to you. <br>\n<br>\nCan you reach out to your employee and ask them to respond to the original messages please?</p>",
-                                            "Cc": "@{body('Get_Manager''s_UPN')?['mail']}@{body('Get_User_UPN')?['mail']}",
-                                            "Importance": "High",
-                                            "Subject": "Alert Escalation: @{triggerBody()?['object']?['properties']?['title']}",
-                                            "To": "@body('Get_Director''s_UPN')?['mail']"
-                                        },
-                                        "host": {
-                                            "connection": {
-                                                "name": "@parameters('$connections')['office365']['connectionId']"
-                                            }
-                                        },
-                                        "method": "post",
-                                        "path": "/v2/Mail"
-                                    },
-                                    "runAfter": {},
-                                    "type": "ApiConnection"
-                                }
-                            }
-                        },
-                        "expression": {
-                            "and": [
-                                {
-                                    "equals": [
-                                        "@variables('UserResponded')",
-                                        true
-                                    ]
-                                }
-                            ]
-                        },
-                        "runAfter": {
-                            "Determine_How_Long_to_Wait_Before_Escalating_to_Director": [
-                                "Succeeded"
-                            ]
-                        },
-                        "type": "If"
-                    },
-                    "Determine_How_Long_to_Wait_Before_Escalating_to_Director": {
-                        "cases": {
-                            "Severity_=_Critical_-_Director": {
-                                "actions": {
-                                    "Wait_30_Minutes_Before_Escalating_to_Director": {
-                                        "inputs": {
-                                            "interval": {
-                                                "count": 30,
-                                                "unit": "Minute"
-                                            }
-                                        },
-                                        "runAfter": {},
-                                        "type": "Wait"
-                                    }
-                                },
-                                "case": "Critical"
-                            },
-                            "Severity_=_High_-_Director": {
-                                "actions": {
-                                    "Wait_60_Minutes_Before_Escalating_to_Director": {
-                                        "inputs": {
-                                            "interval": {
-                                                "count": 60,
-                                                "unit": "Minute"
-                                            }
-                                        },
-                                        "runAfter": {},
-                                        "type": "Wait"
-                                    }
-                                },
-                                "case": "High"
-                            },
-                            "Severity_=_Medium_-_Director": {
-                                "actions": {
-                                    "Wait_120_Minutes_Before_Escalating_to_Director": {
-                                        "inputs": {
-                                            "interval": {
-                                                "count": 120,
-                                                "unit": "Minute"
-                                            }
-                                        },
-                                        "runAfter": {},
-                                        "type": "Wait"
-                                    }
-                                },
-                                "case": "Medium"
-                            }
-                        },
-                        "default": {
-                            "actions": {
-                                "Wait_240_Minutes_Before_Escalating_to_Director": {
-                                    "inputs": {
-                                        "interval": {
-                                            "count": 240,
-                                            "unit": "Minute"
-                                        }
-                                    },
-                                    "runAfter": {},
-                                    "type": "Wait"
-                                }
-                            }
-                        },
-                        "expression": "@triggerBody()?['object']?['properties']?['severity']",
-                        "runAfter": {
-                            "Get_Director's_UPN": [
-                                "Succeeded"
-                            ]
-                        },
-                        "type": "Switch"
-                    },
-                    "Determine_How_Long_to_Wait_Before_Escalating_to_Manager": {
-                        "cases": {
-                            "Severity_=_Critical_-_Manager": {
-                                "actions": {
-                                    "Wait_15_Minutes_Before_Escalating_to_Manager": {
-                                        "inputs": {
-                                            "interval": {
-                                                "count": 15,
-                                                "unit": "Minute"
-                                            }
-                                        },
-                                        "runAfter": {},
-                                        "type": "Wait"
-                                    }
-                                },
-                                "case": "Critical"
-                            },
-                            "Severity_=_High_-_Manager": {
-                                "actions": {
-                                    "Wait_30_Minutes_Before_Escalating_to_Manager": {
-                                        "inputs": {
-                                            "interval": {
-                                                "count": 30,
-                                                "unit": "Minute"
-                                            }
-                                        },
-                                        "runAfter": {},
-                                        "type": "Wait"
-                                    }
-                                },
-                                "case": "High"
-                            },
-                            "Severity_=_Medium_-_Manager": {
-                                "actions": {
-                                    "Wait_60_Minutes_Before_Escalating_to_Manager": {
-                                        "inputs": {
-                                            "interval": {
-                                                "count": 60,
-                                                "unit": "Minute"
-                                            }
-                                        },
-                                        "runAfter": {},
-                                        "type": "Wait"
-                                    }
-                                },
-                                "case": "Medium"
-                            }
-                        },
-                        "default": {
-                            "actions": {
-                                "Wait_120_Minutes_Before_Escalating_to_Manager": {
-                                    "inputs": {
-                                        "interval": {
-                                            "count": 120,
-                                            "unit": "Minute"
-                                        }
-                                    },
-                                    "runAfter": {},
-                                    "type": "Wait"
-                                }
-                            }
-                        },
-                        "expression": "@triggerBody()?['object']?['properties']?['severity']",
-                        "runAfter": {
-                            "Get_Director's_UPN": [
-                                "Succeeded"
-                            ]
-                        },
-                        "type": "Switch"
                     },
                     "Get_Director's_UPN": {
                         "inputs": {
@@ -331,75 +140,11 @@
                             "path": "/v1.0/users/@{encodeURIComponent(variables('AccountUPN'))}"
                         },
                         "runAfter": {
-                            "Append_to_\"AccountUPN\"_variable": [
+                            "Append_to_\"AccountUPN\"_Variable_2": [
                                 "Succeeded"
                             ]
                         },
                         "type": "ApiConnection"
-                    },
-                    "Has_User_Responded_-_Manager": {
-                        "actions": {},
-                        "else": {
-                            "actions": {
-                                "Add_Comment_-_Manager_Escalation": {
-                                    "inputs": {
-                                        "body": {
-                                            "incidentArmId": "@triggerBody()?['object']?['id']",
-                                            "message": "<p>No response has been recieved from @{body('Get_User_UPN')?['displayName']}<br>\n<br>\nThis incident has been escalated to @{body('Get_Manager''s_UPN')?['displayName']}, the manager, to get a response from the end user.&nbsp;</p>"
-                                        },
-                                        "host": {
-                                            "connection": {
-                                                "name": "@parameters('$connections')['azuresentinel_1']['connectionId']"
-                                            }
-                                        },
-                                        "method": "post",
-                                        "path": "/Incidents/Comment"
-                                    },
-                                    "runAfter": {
-                                        "Send_an_Escalation_Email_to_Manager": [
-                                            "Succeeded"
-                                        ]
-                                    },
-                                    "type": "ApiConnection"
-                                },
-                                "Send_an_Escalation_Email_to_Manager": {
-                                    "inputs": {
-                                        "body": {
-                                            "Body": "<p>@{body('Get_User_UPN')?['displayName']}triggered the alert <br>\nat <br>\n<br>\nAs a result of this alert, several messages were sent to @{body('Get_User_UPN')?['displayName']}asking them if this was valid activity or not. No response has been received from these messages and the incident is being escalated to you.<br>\n<br>\nCan you reach out to your employee and ask them to respond to the original messages please?</p>",
-                                            "Cc": "@body('Get_User_UPN')?['mail']",
-                                            "Importance": "High",
-                                            "Subject": "Alert Escaltion: ",
-                                            "To": "@body('Get_Manager''s_UPN')?['mail']"
-                                        },
-                                        "host": {
-                                            "connection": {
-                                                "name": "@parameters('$connections')['office365']['connectionId']"
-                                            }
-                                        },
-                                        "method": "post",
-                                        "path": "/v2/Mail"
-                                    },
-                                    "runAfter": {},
-                                    "type": "ApiConnection"
-                                }
-                            }
-                        },
-                        "expression": {
-                            "and": [
-                                {
-                                    "equals": [
-                                        "@variables('UserResponded')",
-                                        true
-                                    ]
-                                }
-                            ]
-                        },
-                        "runAfter": {
-                            "Determine_How_Long_to_Wait_Before_Escalating_to_Manager": [
-                                "Succeeded"
-                            ]
-                        },
-                        "type": "If"
                     },
                     "Set_\"AccountUPN\"_variable": {
                         "inputs": {
