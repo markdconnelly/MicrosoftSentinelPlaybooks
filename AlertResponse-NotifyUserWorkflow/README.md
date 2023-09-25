@@ -13,7 +13,7 @@
 ### Step 3 - Playbook executes
 ![Playbook](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/03-Sentinel-RunPlaybook.png)
 
-### Step 4 - Email get sent to user asking them if they did that
+### Step 4 - Email gets sent to user asking them if they did that
 ![Email Alert](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/04-Email-AlertNotification.png)
 
 ### Step 5 - If they confirm in email, they will get a response like this

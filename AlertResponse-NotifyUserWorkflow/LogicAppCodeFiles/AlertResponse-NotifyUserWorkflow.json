@@ -173,7 +173,7 @@
                     "Set_\"AlertBodyMD\"_Variable": {
                         "inputs": {
                             "name": "AlertBodyMD",
-                            "value": "# Severity:\n@{triggerBody()?['object']?['properties']?['severity']}\n## Start Time:\n@{triggerBody()?['object']?['properties']?['createdTimeUtc']}\n## Description:\n> @{triggerBody()?['object']?['properties']?['description']}"
+                            "value": "**Severity:**\n@{triggerBody()?['object']?['properties']?['severity']}\n**Start Time:**\n@{triggerBody()?['object']?['properties']?['createdTimeUtc']}\n**Incident Title**\n@{triggerBody()?['object']?['properties']?['title']}\n**Description:**\n@{triggerBody()?['object']?['properties']?['description']}"
                         },
                         "runAfter": {
                             "Get_User_Object_By_UPN": [
