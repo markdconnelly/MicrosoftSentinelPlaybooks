@@ -22,11 +22,11 @@
 
 ## Step 6
 ### If they confirm in email, a comment like this will go into the sentinel incident
-![Email Confirm Comment](http://url/to/img.png)
+![Email Confirm Comment](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/06-Email-SentinelComment-ConfirmedActivity.png)
 
 ## Step 7
 ### They may see the notification in teams first
-![Teams Notify](http://url/to/img.png)
+![Teams Notify](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/07-Teams-AlertNotification.png)
 
 ## Step 8
 ### Whether they get email or teams first, they can confirm either way
