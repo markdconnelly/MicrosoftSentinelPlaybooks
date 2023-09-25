@@ -279,7 +279,7 @@
                                         "inputs": {
                                             "body": {
                                                 "incidentArmId": "@triggerBody()?['object']?['id']",
-                                                "message": "<p>@{body('Get_User_UPN')?['displayName']} has confirmed that the activity in the alert was from them and expected via Microsoft Teams.<br>\n<br>\nResponse: @{body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']}<br>\nResponse Time: @{body('Ask_User_to_Confirm_Activity_in_Teams')['responseTime']}</p>"
+                                                "message": "<p>@{body('Get_User_UPN')?['displayName']} has confirmed that the activity in the alert was from them and expected via Microsoft Teams.<br>\n<br>\nResponse: @{body('Ask_User_to_Confirm_Activity_in_Teams')['selectedOption']}<br>\nResponse Time: @{body('Ask_User_to_Confirm_Activity_in_Teams')['responseTime']}<br>\nUser Comments: @{body('Ask_User_to_Confirm_Activity_in_Teams')?['comments']}<br>\n</p>"
                                             },
                                             "host": {
                                                 "connection": {
