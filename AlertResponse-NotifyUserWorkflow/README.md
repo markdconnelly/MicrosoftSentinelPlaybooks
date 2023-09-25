@@ -57,5 +57,7 @@
 ![Teams Reject Comment](https://github.com/markdconnelly/MicrosoftSentinelAutomation/blob/main/AlertResponse-NotifyUserWorkflow/14-Teams-SentinelComment-ActivityRejected.png)
 
 > As you can see
+
 > This automation workflow can quickly get user feedback to aid in an investigation
+
 > Feel free to grab this code to use in your environment 
