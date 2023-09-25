@@ -259,7 +259,7 @@
                                         "inputs": {
                                             "body": {
                                                 "incidentArmId": "@triggerBody()?['object']?['id']",
-                                                "message": "<p>## USER REJECTED ACTIVITY<br>\n<br>\n@{body('Get_User_Object_By_UPN')?['displayName']} has confirmed through Microsoft Teams that this activity is not from them. Please proceed with investigating further.<br>\n<br>\n## USER REJECTED ACTIVITY<br>\n<br>\n### User Response: @{body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']}</p>"
+                                                "message": "<p>## USER REJECTED ACTIVITY<br>\n<br>\n@{body('Get_User_Object_By_UPN')?['displayName']} has confirmed via email that this activity is not from them. Please proceed with investigating further.<br>\n<br>\n## USER REJECTED ACTIVITY<br>\n<br>\n### User Response: @{body('Ask_User_to_Confirm_Activity_in_Email')?['SelectedOption']}</p>"
                                             },
                                             "host": {
                                                 "connection": {
