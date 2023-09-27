@@ -1,8 +1,17 @@
+// Get a list of trust IP addresses
+let TrustedIPs = (_GetWatchlist('TrustedIPs') | project IP);
+
+// Query the Sign In Log
   SigninLogs
-  | where IPAddress != "199.184.122.65"
-  | where IPAddress != "199.184.122.5"
+  // Where IP Address is not in the Trusted IP list
+  | where IPAddress !in (TrustedIPs)
+  // Where the sign in was over a day ago
   | where TimeGenerated > ago(1d)
+  // Where the sign in was successful
   | where ResultType == 0
+  // Where the sign in's device detail is empty
   | where isempty(DeviceDetail.deviceId)
+  // Where the sign in only required single factor authentication
   | where AuthenticationRequirement == "singleFactorAuthentication"
+  // Expand location details of the sign in
   | extend LocationDetail = strcat(Location, "-", LocationDetails.state)
