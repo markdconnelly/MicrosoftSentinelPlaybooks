@@ -1,1 +1,6 @@
-let watchlist = (_GetWatchlist('HighValueUsers') | project Account);
+//HighValueUsers Watchlist as a variable
+let HighValueUsers = (_GetWatchlist('HighValueUsers') | project Account);
+//Query to find all emails reported by users in the HighValueUsers watchlist
+SecurityAlert
+| where DisplayName == "Email reported by user as malware or phish"
+| where ComputerIP in (HighValueUsers)

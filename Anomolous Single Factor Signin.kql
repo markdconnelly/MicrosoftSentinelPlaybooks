@@ -1,6 +1,17 @@
 // Get a list of trust IP addresses
 let TrustedIPs = (_GetWatchlist('TrustedIPs') | project IP);
 
+// Establish "Anomolous" locations and Autonomous System Numbers
+let known_locations = (SigninLogs
+  | where TimeGenerated between(ago(14d)..ago(1d))
+  | where ResultType == 0
+  | extend LocationDetail = strcat(Location, "-", LocationDetails.state)
+  | summarize by LocationDetail);
+  let known_asn = (SigninLogs
+  | where TimeGenerated between(ago(14d)..ago(1d))
+  | where ResultType == 0
+  | summarize by AutonomousSystemNumber);
+
 // Query the Sign In Log
   SigninLogs
   // Where IP Address is not in the Trusted IP list

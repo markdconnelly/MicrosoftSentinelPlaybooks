@@ -1,0 +1,181 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "actions": [
+    {
+      "data": {
+        "x": "confirm"
+      },
+      "title": "Submit response!",
+      "type": "Action.Submit"
+    }
+  ],
+  "body": [
+    {
+      "size": "Large",
+      "text": "New Microsoft Sentinel incident created",
+      "type": "TextBlock",
+      "wrap": true
+    },
+    {
+      "text": "[Click here to view the Incident](@{triggerBody()?['object']?['properties']?['incidentUrl']})",
+      "type": "TextBlock",
+      "wrap": true
+    },
+    {
+      "facts": [
+        {
+          "size": "medium",
+          "spacing": "large",
+          "title": "Incident Title",
+          "value": "@{triggerBody()?['object']?['properties']?['title']}"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Incident ID",
+          "value": "@{triggerBody()?['object']?['properties']?['incidentNumber']}"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Incident Creation time (UTC)",
+          "value": "@{triggerBody()?['object']?['properties']?['createdTimeUtc']}"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Severity",
+          "value": "@{triggerBody()?['object']?['properties']?['severity']}"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Alert Providers",
+          "value": "@{join(triggerBody()?['object']?['properties']?['additionalData']?['alertProductNames'],'; ')}"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Tactics",
+          "value": "@{join(triggerBody()?['object']?['properties']?['additionalData']?['tactics'], '; ')}"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Description",
+          "value": "@{triggerBody()?['object']?['properties']?['description']}"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Entities",
+          "value": "@{triggerBody()?['object']?['properties']?['entities']}"
+        }
+      ],
+      "type": "FactSet"
+    },
+    {
+      "size": "Large",
+      "spacing": "Large",
+      "text": "Respond:",
+      "type": "TextBlock",
+      "weight": "Bolder"
+    },
+    {
+      "size": "Small",
+      "style": "Person",
+      "type": "Image",
+      "url": "https://connectoricons-prod.azureedge.net/releases/v1.0.1391/1.0.1391.2130/azuresentinel/icon.png"
+    },
+    {
+      "text": "Close Microsoft Sentinel incident?",
+      "type": "TextBlock"
+    },
+    {
+      "choices": [
+        {
+          "isSelected": true,
+          "title": "Close incident - False Positive",
+          "value": "FalsePositive - IncorrectAlertLogic"
+        },
+        {
+          "title": "Close incident - True Positive",
+          "value": "TruePositive - SuspiciousActivity"
+        },
+        {
+          "title": "Close incident - Benign Positive",
+          "value": "BenignPositive - SuspiciousButExpected"
+        },
+        {
+          "title": "Don't close the incident",
+          "value": "no"
+        }
+      ],
+      "id": "incidentStatus",
+      "style": "compact",
+      "type": "Input.ChoiceSet",
+      "value": "no"
+    },
+    {
+      "text": "Change Microsoft Sentinel incident severity?",
+      "type": "TextBlock"
+    },
+    {
+      "choices": [
+        {
+          "title": "High",
+          "value": "High"
+        },
+        {
+          "title": "Medium",
+          "value": "Medium"
+        },
+        {
+          "title": "Low",
+          "value": "Low"
+        },
+        {
+          "title": "Informational",
+          "value": "Informational"
+        },
+        {
+          "isSelected": true,
+          "title": "Don't change",
+          "value": "same"
+        }
+      ],
+      "id": "incidentSeverity",
+      "style": "compact",
+      "type": "Input.ChoiceSet",
+      "value": "same"
+    },
+    {
+      "text": "Perform an Automated Response?",
+      "type": "TextBlock"
+    },
+    {
+      "choices": [
+        {
+          "title": "Request User Feedback",
+          "value": "RequestUserFeedback"
+        },
+        {
+          "title": "Perform Incident Enrichment",
+          "value": "PerformIncidentEnrichment"
+        },
+        {
+          "title": "Lock User",
+          "value": "LockUser"
+        },
+        {
+          "title": "Lock Machine",
+          "value": "LockMachine"
+        },
+        {
+          "isSelected": true,
+          "title": "No Automation",
+          "value": "NoAutomation"
+        }
+      ],
+      "id": "automationChoice",
+      "style": "compact",
+      "type": "Input.ChoiceSet",
+      "value": "NoAutomation"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.4"
+}
