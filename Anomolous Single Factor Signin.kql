@@ -1,0 +1,8 @@
+  SigninLogs
+  | where IPAddress != "199.184.122.65"
+  | where IPAddress != "199.184.122.5"
+  | where TimeGenerated > ago(1d)
+  | where ResultType == 0
+  | where isempty(DeviceDetail.deviceId)
+  | where AuthenticationRequirement == "singleFactorAuthentication"
+  | extend LocationDetail = strcat(Location, "-", LocationDetails.state)

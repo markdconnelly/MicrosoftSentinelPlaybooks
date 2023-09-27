@@ -1,0 +1,1 @@
+let watchlist = (_GetWatchlist('HighValueUsers') | project Account);
