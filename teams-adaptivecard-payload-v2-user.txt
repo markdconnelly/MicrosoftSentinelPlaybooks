@@ -1,0 +1,142 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "actions": [
+    {
+      "data": {
+        "x": "confirm"
+      },
+      "title": "Submit response!",
+      "type": "Action.Submit"
+    }
+  ],
+  "body": [
+    {
+      "size": "Large",
+      "text": "Cybersecurity Needs Your Help!",
+      "type": "TextBlock",
+      "wrap": true
+    },
+    {
+      "text": "A security alert was triggered and the cybersecurity teams investigating it has requested your feedback on the alert below. If this was you, let us know so we don't think it was malicious. If this wasn't you, let us know so we can better protect your account.",
+      "type": "TextBlock",
+      "wrap": true
+    },
+    {
+      "facts": [
+        
+        {
+          "spacing": "Medium",
+          "title": "Severity",
+          "value": "@{triggerBody()?['object']?['properties']?['severity']}"
+        },
+		{
+          "size": "medium",
+          "spacing": "large",
+          "title": "Incident Title",
+          "value": "@{triggerBody()?['object']?['properties']?['title']}"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Incident ID",
+          "value": "@{triggerBody()?['object']?['properties']?['incidentNumber']}"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Incident Creation time (UTC)",
+          "value": "@{triggerBody()?['object']?['properties']?['createdTimeUtc']}"
+        },,
+        {
+          "spacing": "Medium",
+          "title": "Description",
+          "value": "@{triggerBody()?['object']?['properties']?['description']}"
+        },
+		{
+          "spacing": "Medium",
+          "title": "Sign In Details",
+          "value": "@{triggerBody()?['object']?['properties']?['signindetails']}"
+        }
+      ],
+      "type": "FactSet"
+    },
+    {
+      "size": "Large",
+      "spacing": "Large",
+      "text": "Respond:",
+      "type": "TextBlock",
+      "weight": "Bolder"
+    },
+    {
+      "text": "Does this activity look familiar?",
+      "type": "TextBlock"
+    },
+    {
+      "choices": [
+        {
+          "isSelected": true,
+          "title": "I'm not sure",
+          "value": "ImNotSure"
+        },
+        {
+          "title": "Yes, this was me",
+          "value": "UserDidActivity"
+        },
+        {
+          "title": "No, this was not me",
+          "value": "PotentialMaliciousActivity"
+        }
+      ],
+      "id": "UserActivityFeedback",
+      "style": "compact",
+      "type": "Input.ChoiceSet",
+      "value": "ImNotSure"
+    },
+    {
+      "text": "Is your job role patient facing?",
+      "type": "TextBlock"
+    },
+    {
+      "choices": [
+        {
+          "title": "Yes, disruptions to my account would affect patient care",
+          "value": "PatientImpacting"
+        },
+        {
+          "title": "Yes, but I could do my job if my account had issues",
+          "value": "PatientImpacting"
+        },
+        {
+          "isSelected": true,
+		  "title": "No, my job is not patient facing",
+          "value": "NotPatientImpacting"
+        }
+      ],
+      "id": "PatientImpacting",
+      "style": "compact",
+      "type": "Input.ChoiceSet",
+      "value": "NotPatientImpacting"
+    },
+    {
+      "text": "Should we include your manager on communications going forward related to this incident?",
+      "type": "TextBlock"
+    },
+    {
+      "choices": [
+        {
+          "title": "Yes, I would like them in the loop",
+          "value": "UserPreferenceMgmt"
+        },
+        {
+          "isSelected": true,
+		  "title": "No, I don't think that is neccessary",
+          "value": "UserPreferenceNoMgmt"
+        }
+      ],
+      "id": "automationChoice",
+      "style": "compact",
+      "type": "Input.ChoiceSet",
+      "value": "UserPreferenceNoMgmt"
+    }
+  ],
+  "type": "AdaptiveCard",
+  "version": "1.4"
+}

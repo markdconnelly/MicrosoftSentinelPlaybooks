@@ -46,11 +46,6 @@
         },
         {
           "spacing": "Medium",
-          "title": "Alert Providers",
-          "value": "@{join(triggerBody()?['object']?['properties']?['additionalData']?['alertProductNames'],'; ')}"
-        },
-        {
-          "spacing": "Medium",
           "title": "Tactics",
           "value": "@{join(triggerBody()?['object']?['properties']?['additionalData']?['tactics'], '; ')}"
         },
