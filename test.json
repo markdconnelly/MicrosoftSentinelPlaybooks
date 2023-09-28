@@ -1,0 +1,223 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Microsoft_Sentinel_incident": {
+        "type": "ApiConnectionWebhook",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+            }
+          },
+          "body": {
+            "callback_url": "@{listCallbackUrl()}"
+          },
+          "path": "/incident-creation"
+        }
+      }
+    },
+    "actions": {
+      "Initialize_\"arrAccounts\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrAccounts",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "Initialize_\"arrHosts\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrHosts",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"arrAccounts\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Initialize_\"arrURLs\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrURLs",
+              "type": "boolean"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"arrHosts\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Initialize_\"arrIPs\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrIPs",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"arrURLs\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Initialize_\"arrDNS\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrDNS",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"arrIPs\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Initialize_\"arrHashes\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrHashes",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"arrDNS\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Entities_-_Get_Accounts": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+          "path": "/entities/account"
+        },
+        "runAfter": {
+          "Initialize_\"arrHashes\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Entities_-_Get_Hosts": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-3']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+          "path": "/entities/host"
+        },
+        "runAfter": {
+          "Initialize_\"arrHashes\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Query_Sign_In_Logs_for_7_Days": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuremonitorlogs']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": "SigninLogs \n| extend OS = DeviceDetail.operatingSystem, Browser = DeviceDetail.browser\n| extend ConditionalAccessPol0Name = tostring(ConditionalAccessPolicies[0].displayName), ConditionalAccessPol0Result = tostring(ConditionalAccessPolicies[0].result)\n| extend ConditionalAccessPol1Name = tostring(ConditionalAccessPolicies[1].displayName), ConditionalAccessPol1Result = tostring(ConditionalAccessPolicies[1].result)\n| extend ConditionalAccessPol2Name = tostring(ConditionalAccessPolicies[2].displayName), ConditionalAccessPol2Result = tostring(ConditionalAccessPolicies[2].result)\n| extend StatusCode = tostring(Status.errorCode), StatusDetails = tostring(Status.additionalDetails)\n| extend State = tostring(LocationDetails.state), City = tostring(LocationDetails.city)\n| extend Date = startofday(TimeGenerated), Hour = datetime_part(\"Hour\", TimeGenerated)\n| summarize count() by Date, Identity, UserDisplayName, UserPrincipalName, IPAddress, ResultType, ResultDescription, StatusCode, StatusDetails, \nConditionalAccessPol0Name, ConditionalAccessPol0Result, ConditionalAccessPol1Name, ConditionalAccessPol1Result, ConditionalAccessPol2Name, ConditionalAccessPol2Result, \nLocation, State, City\n| extend timestamp = Date, AccountCustomEntity = UserPrincipalName, IPCustomEntity = IPAddress\n| sort by Date",
+          "path": "/queryData",
+          "queries": {
+            "subscriptions": "de46bab3-a956-4eb7-a983-8e4d98aa343d",
+            "resourcegroups": "CUS_CyberOperations",
+            "resourcetype": "Log Analytics Workspace",
+            "resourcename": "CUS-SentinelWorkspaceV2",
+            "timerange": "Last 7 days"
+          }
+        },
+        "runAfter": {
+          "Entities_-_Get_Hosts": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "parameters": {
+      "$connections": {
+        "type": "Object",
+        "defaultValue": {}
+      }
+    }
+  },
+  "parameters": {
+    "$connections": {
+      "value": {
+        "azuresentinel-2": {
+          "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/azuresentinel",
+          "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/azuresentinel",
+          "connectionName": "azuresentinel",
+          "connectionProperties": {
+            "authentication": {
+              "type": "ManagedServiceIdentity",
+              "identity": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_IdentitySecurity/providers/Microsoft.ManagedIdentity/userAssignedIdentities/CyberAutomationMI"
+            }
+          }
+        },
+        "azuresentinel-3": {
+          "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/azuresentinel",
+          "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/azuresentinel-Test-PhishingResponseFromScratch",
+          "connectionName": "azuresentinel-Test-PhishingResponseFromScratch",
+          "connectionProperties": {
+            "authentication": {
+              "type": "ManagedServiceIdentity",
+              "identity": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_IdentitySecurity/providers/Microsoft.ManagedIdentity/userAssignedIdentities/CyberAutomationMI"
+            }
+          }
+        },
+        "azuremonitorlogs": {
+          "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/azuremonitorlogs",
+          "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/azuremonitorlogs",
+          "connectionName": "azuremonitorlogs",
+          "connectionProperties": {
+            "authentication": {
+              "type": "ManagedServiceIdentity",
+              "identity": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_IdentitySecurity/providers/Microsoft.ManagedIdentity/userAssignedIdentities/CyberAutomationMI"
+            }
+          }
+        }
+      }
+    }
+  }
+}

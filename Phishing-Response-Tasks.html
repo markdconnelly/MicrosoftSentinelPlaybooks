@@ -1,0 +1,81 @@
+<h2>Introduction</h2>
+<dt>To report phishing messages, <a target='_blank' href="https://go.microsoft.com/fwlink/?linkid=2167511">submit</a> them on Microsoft 365 Defender for analysis. Select "Should have been blocked" when prompted. Results are shown in the submissions detail flyout. Follow our <a target='_blank' href="https://go.microsoft.com/fwlink/?linkid=2201181">step-by-step guide</a> for details.</dt>
+<dt><b>This playbook for Security Operations (SecOps/SOC) teams will walk you through four stages of responding to a phishing incident: containment, investigation, remediation and prevention. The step-by-step instructions will help you take the required remedial action to protect information and minimize further risks.</b></dt>
+<dt>Click on "Contain" task when you're ready to start.</dt>
+
+<h2>Contain</h2>
+<dt><b>� Which assets are involved?</b></dt>
+<dd>� If an endpoint performed any suspicious activity, consider <a target='_blank' href="https://docs.microsoft.com/microsoft-365/security/defender-endpoint/respond-machine-alerts#isolate-devices-from-the-network">isolating the device</a> in M365D or <a target='_blank' href="https://learn.microsoft.com/azure/sentinel/respond-threats-during-investigation">from Microsoft Sentinel</a>.</dd>
+<dt><b>� Which user accounts are involved and what are their privileges?</b></dt>
+<dd>� To assess the risk, first determine whether the user accounts are priority, management, or administrator accounts.</dd>
+<dt><b>� What containments actions were already taken by automated response?</b></dt>
+<dd>� What is the evidence remediation status?</dd>
+<dd>� Check evidence & response tab in M365D portal for <a target='_blank' href="https://docs.microsoft.com/microsoft-365/security/office-365-security/air-review-approve-pending-completed-actions">pending approval actions</a>.</dd>
+
+<h2>Investigate Mail</h2>
+<dt><b>�	Review the initial phishing email.</b></dt>
+<dd>�	From the incident in the M365D incidents queue, select the Evidence and Response tab.</dd>
+<dd>�	Find the relevant email and open the email page. </dd>
+<dd>�	Check the email header for the true source of the sender.</dd>
+<dd>�	Investigate the source IP address of the email. Is the IP address used by attackers or campaigns?</dd>
+<dd>&nbsp;&nbsp;&nbsp;&nbsp;- <a target='_blank' href="https://security.microsoft.com/threatanalytics3">Threat analytics</a></dd>
+<dd>&nbsp;&nbsp;&nbsp;&nbsp;- <a target='_blank' href="https://security.microsoft.com/campaigns">Campaigns</a></dd>
+<dt><b>�	Did the email contain a URL?</b></dt>
+<dd>�	Go to the URL page to get the URL reputation.</dd>
+<dt><b>�	Did the email contain an attachment?</b></dt>
+<dd>�	Look for potential malicious content in the attachment, for example, PDF files, obfuscated PowerShell, or other script codes.</dd>
+<dd>�	Check the device timeline to understand if the payload executed on the endpoint. If so, consider isolating the device. </dd>
+<dt><b>�	Is there a risk that the user opened the email?</b></dt>
+<dd>�	If yes, perform remediation.</dd>
+<dt><b>�	Get the list of users who got the phishing email.</b><dt>
+
+<h2>Investigate Involved Users</h2>
+<dt>For each user that is involved in the incident:</dt>
+<dt><b>�	Investigate the user account for suspicious actions.</b></dt>
+<dd>�	<a target='_blank' href="https://docs.microsoft.com/microsoft-365/security/defender/investigate-users?view=o365-worldwide">Investigate users in Microsoft 365 Defender</a>.</dd>
+<dd>�	<a target='_blank' href="https://learn.microsoft.com/azure/sentinel/investigate-with-ueba">Investigate users with Microsoft Sentinel UEBA</a>.</dd>
+<dt><b>�	What is the investigation priority score of the user account?</b></dt>
+<dd>�	If the user performed suspicious activity, consider these steps:</dd>
+<dd>&nbsp;&nbsp;&nbsp;&nbsp;- Contact the user assigned the user account.</dd>
+<dd>&nbsp;&nbsp;&nbsp;&nbsp;- Reset the user account�s password.</dd>
+<dd>&nbsp;&nbsp;&nbsp;&nbsp;- Require the user to sign in again.</dd>
+<dt><b>�	Investigate the user account�s mailbox.</b></dt>
+<dd>�	Get the latest dates when the user account had access to the mailbox.</dd>
+<dd>�	Is delegated access configured on the mailbox and did it change recently?</dd>
+<dd>&nbsp;&nbsp;&nbsp;&nbsp;- Activity names:  'Add-MailboxPermission', 'Add-MailboxFolderPermission', 'Set-MailboxFolderPermission'</dd>
+<dd>�	Is there a forwarding rule configured for the mailbox and was it added recently?</dd>
+<dd>&nbsp;&nbsp;&nbsp;&nbsp;- Activity names: "New-InboxRule", "Set-InboxRule", "Set-Mailbox", "Set-TransportRule", "New-TransportRule".</dd>
+<dt><b>�	If the email contained a malicious URL, did the user click the link in the email?</b></dt>
+<dd>�	Get more details on the user click from the advanced hunting user clicks table</dd>
+<dt><b>�	If the email contained an attachment, was the attachment payload executed? Was malicious code executed?</b></dt>
+<dd>�	If yes, quarantine the file on the device, and consider to isolating the device.</dd>
+
+<h2>Investigate Involved Devices</h2>
+<dt>For each end user device that is involved in the incident:</dt>
+<dt><b>�	Investigate the device for suspicious actions.</b></dt>
+<dd>�	<a target='_blank' href="https://learn.microsoft.com/en-us/microsoft-365/security/defender-endpoint/investigate-machines?view=o365-worldwide">Investigate devices in Microsoft 365 Defender</a>.</dd>
+<dd>�	<a target='_blank' href="https://learn.microsoft.com/azure/sentinel/investigate-with-ueba">Investigate users with Microsoft Sentinel UEBA</a>.</dd>
+<dt><b>�	What is the investigation priority score of the device?</b></dt>
+<dd>�	If the device performed suspicious activity, consider these steps:</dd>
+<dd>� If an endpoint performed any suspicious activity, consider <a target='_blank' href="https://docs.microsoft.com/microsoft-365/security/defender-endpoint/respond-machine-alerts#isolate-devices-from-the-network">isolating the device</a> in M365D or <a target='_blank' href="https://learn.microsoft.com/azure/sentinel/respond-threats-during-investigation">from Microsoft Sentinel</a>.</dd>
+
+<h2>Remediate</h2>
+<dt><b>�	Mark the incident as a True Positive.</b></dt>
+<dt><b>�	Use Threat Explorer to remove the malicious emails from all of your inboxes and report the message as phishing to Microsoft.</b><dt>
+<dd>�	<a target='_blank' href="https://security.microsoft.com/threatexplorer">Threat Explorer</a>.</dd>
+<dt><b>�	If during this incident a forwarding rule is created, remove the forwarding rule and block the forwarding address.</b></dt>
+<dt><b>�	<a target='_blank' href="https://docs.microsoft.com/microsoft-365/security/office-365-security/admin-submission">Submit</a> the incident evidence to Microsoft.</b></dt>
+<dd>�	Emails</dd>
+<dd>�	Attachments</dd>
+<dd>�	URLs</dd>
+<dd>�	Files</dd>
+
+<h2>Prevent</h2>
+<dt>If the phishing email was received because of a policy override, consider removing the override from the related allow list (Exchange Transport Rule/IP Allow List), and/or enabling ZAP.</dt>
+<dt><b>�	Alerts generated due to policy overrides:</b></dt>
+<dd>�	Phish delivered due to an ETR override.</dd>
+<dd>�	Phish delivered due to an IP allow policy.</dd>
+<dd>�	Phish not zapped because ZAP is disabled.</dd>
+<dt>For more information, see <a target='_blank' href="https://learn.microsoft.com/security/compass/incident-response-playbook-phishing">Phishing investigation IR playbook</a>.</dt>
+<dt>If you received a forwarding alert as part of the incident, use outbound spam policies to <a target='_blank' href="https://docs.microsoft.com/microsoft-365/security/office-365-security/external-email-forwarding">prevent forwarding to external recipients</a>.</dt>
+<dt>Use <a target='_blank' href="https://docs.microsoft.com/microsoft-365/security/office-365-security/attack-simulation-training-get-started">Attack simulation training</a> in the Microsoft 365 Defender portal to run realistic attack scenarios in your organization. These simulated attacks can help you identify vulnerable users.</dt>
