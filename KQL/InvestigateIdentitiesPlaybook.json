@@ -169,7 +169,7 @@
                             }
                           },
                           "method": "post",
-                          "body": "AzureActivity\n| extend Date = datetime_utc_to_local(TimeGenerated,'US/Central')\n| where Caller contains \"mark.connelly@carle.com\"\n| project Date, Caller, ResourceGroup, OperationNameValue, ActivityStatusValue",
+                          "body": "AzureActivity\n| extend Date = datetime_utc_to_local(TimeGenerated,'US/Central')\n| where Caller contains \"@{variables('TranslateUPN')}\"\n| project Date, Caller, ResourceGroup, OperationNameValue, ActivityStatusValue",
                           "path": "/queryData",
                           "queries": {
                             "subscriptions": "39e54469-f2fe-4053-8e33-fd17df747170",
@@ -194,7 +194,7 @@
                             }
                           },
                           "method": "post",
-                          "body": "AADUserRiskEvents\n| extend Date = datetime_utc_to_local(TimeGenerated,'US/Central')\n| where UserDisplayName contains \"mark.connelly@carle.com\"",
+                          "body": "AADUserRiskEvents\n| extend Date = datetime_utc_to_local(TimeGenerated,'US/Central')\n| where UserDisplayName contains \"@{variables('TranslateUPN')}\"",
                           "path": "/queryData",
                           "queries": {
                             "subscriptions": "39e54469-f2fe-4053-8e33-fd17df747170",
