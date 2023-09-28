@@ -1,0 +1,320 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Microsoft_Sentinel_incident": {
+        "type": "ApiConnectionWebhook",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+            }
+          },
+          "body": {
+            "callback_url": "@{listCallbackUrl()}"
+          },
+          "path": "/incident-creation"
+        }
+      }
+    },
+    "actions": {
+      "Initialize_\"FinalOutputHTML\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "FinalOutputHTML",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "Get_Accounts_Related_to_Incident": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+          "path": "/entities/account"
+        },
+        "runAfter": {
+          "Initialize_\"TranslateUPN\"_Variable": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Set_\"arrAccounts\"_Variable": {
+        "type": "SetVariable",
+        "inputs": {
+          "name": "arrAccounts",
+          "value": "@body('Get_Accounts_Related_to_Incident')?['Accounts']"
+        },
+        "runAfter": {
+          "Get_Accounts_Related_to_Incident": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Initialize_\"arrAccounts\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrAccounts",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"FinalOutputHTML\"_Variable": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Accounts_Not_Null": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "",
+                ""
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Evaluate_Attack_Type": {
+            "type": "Switch",
+            "expression": "@triggerBody()?['object']?['properties']?['labels']",
+            "default": {
+              "actions": {}
+            },
+            "cases": {
+              "Case_\"Account_Attack\"": {
+                "actions": {
+                  "For_Each_Account": {
+                    "type": "Foreach",
+                    "foreach": "@body('Get_Accounts_Related_to_Incident')?['Accounts']",
+                    "actions": {
+                      "Query_AAD_Sign_In_Logs": {
+                        "type": "ApiConnection",
+                        "inputs": {
+                          "host": {
+                            "connection": {
+                              "name": "@parameters('$connections')['azuremonitorlogs']['connectionId']"
+                            }
+                          },
+                          "method": "post",
+                          "body": "SigninLogs\n| extend OS = DeviceDetail.operatingSystem, Browser = DeviceDetail.browser\n| extend Date = datetime_utc_to_local(TimeGenerated,'US/Central')\n| where UserPrincipalName == \"mark.connelly@carle.com\"\n| project Date, Location, IPAddress, UserPrincipalName, AppDisplayName, ConditionalAccessStatus, OS, Browser",
+                          "path": "/queryData",
+                          "queries": {
+                            "subscriptions": "39e54469-f2fe-4053-8e33-fd17df747170",
+                            "resourcegroups": "CUS_Sentinel_RG",
+                            "resourcetype": "Log Analytics Workspace",
+                            "resourcename": "cfh-sentinetl-law",
+                            "timerange": "Last 7 days"
+                          }
+                        },
+                        "runAfter": {
+                          "Set_\"TranslatedUPN\"_Variable": [
+                            "Succeeded"
+                          ]
+                        }
+                      },
+                      "Query_AAD_Audit_Logs_": {
+                        "type": "ApiConnection",
+                        "inputs": {
+                          "host": {
+                            "connection": {
+                              "name": "@parameters('$connections')['azuremonitorlogs']['connectionId']"
+                            }
+                          },
+                          "method": "post",
+                          "body": "AuditLogs\n| extend Date = datetime_utc_to_local(TimeGenerated,'US/Central')\n| extend initiatedBy = tostring(InitiatedBy.user.userPrincipalName)\n| where InitiatedBy contains  \"@{variables('TranslateUPN')}\"\n| project-rename OperationType = AADOperationType\n| project Date, initiatedBy, OperationType, Category, TargetResources",
+                          "path": "/queryData",
+                          "queries": {
+                            "subscriptions": "39e54469-f2fe-4053-8e33-fd17df747170",
+                            "resourcegroups": "CUS_Sentinel_RG",
+                            "resourcetype": "Log Analytics Workspace",
+                            "resourcename": "cfh-sentinetl-law",
+                            "timerange": "Last 7 days"
+                          }
+                        },
+                        "runAfter": {
+                          "Set_\"TranslatedUPN\"_Variable": [
+                            "Succeeded"
+                          ]
+                        }
+                      },
+                      "Set_\"TranslatedUPN\"_Variable": {
+                        "type": "SetVariable",
+                        "inputs": {
+                          "name": "TranslateUPN",
+                          "value": "@{concat(items('For_Each_Account')?['Name'], '@' ,items('For_Each_Account')?['UPNSuffix'])}"
+                        }
+                      },
+                      "Query_Azure_Activity_Logs": {
+                        "type": "ApiConnection",
+                        "inputs": {
+                          "host": {
+                            "connection": {
+                              "name": "@parameters('$connections')['azuremonitorlogs']['connectionId']"
+                            }
+                          },
+                          "method": "post",
+                          "body": "AzureActivity\n| extend Date = datetime_utc_to_local(TimeGenerated,'US/Central')\n| where Caller contains \"mark.connelly@carle.com\"\n| project Date, Caller, ResourceGroup, OperationNameValue, ActivityStatusValue",
+                          "path": "/queryData",
+                          "queries": {
+                            "subscriptions": "39e54469-f2fe-4053-8e33-fd17df747170",
+                            "resourcegroups": "CUS_Sentinel_RG",
+                            "resourcetype": "Log Analytics Workspace",
+                            "resourcename": "cfh-sentinetl-law",
+                            "timerange": "Last 7 days"
+                          }
+                        },
+                        "runAfter": {
+                          "Set_\"TranslatedUPN\"_Variable": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      },
+                      "Query_AAD_Risk_Logs": {
+                        "type": "ApiConnection",
+                        "inputs": {
+                          "host": {
+                            "connection": {
+                              "name": "@parameters('$connections')['azuremonitorlogs']['connectionId']"
+                            }
+                          },
+                          "method": "post",
+                          "body": "AADUserRiskEvents\n| extend Date = datetime_utc_to_local(TimeGenerated,'US/Central')\n| where UserDisplayName contains \"mark.connelly@carle.com\"",
+                          "path": "/queryData",
+                          "queries": {
+                            "subscriptions": "39e54469-f2fe-4053-8e33-fd17df747170",
+                            "resourcegroups": "CUS_Sentinel_RG",
+                            "resourcetype": "Log Analytics Workspace",
+                            "resourcename": "cfh-sentinetl-law",
+                            "timerange": "Last 7 days"
+                          }
+                        },
+                        "runAfter": {
+                          "Set_\"TranslatedUPN\"_Variable": [
+                            "SUCCEEDED"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "case": "Account Attack"
+              },
+              "Case_\"Account_Elevation\"": {
+                "actions": {},
+                "case": "Account Elevation"
+              },
+              "Case_\"Account_Management\"": {
+                "actions": {},
+                "case": "Account Management"
+              },
+              "Case_ADFS": {
+                "actions": {},
+                "case": "Active Directory Federation Services"
+              },
+              "Case_Entra": {
+                "actions": {},
+                "case": "Entra"
+              },
+              "Case_Service_Principal": {
+                "actions": {},
+                "case": "Service Principal"
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {
+            "Add_comment_to_incident_(V3)": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "body": {
+                  "incidentArmId": "@triggerBody()?['object']?['id']",
+                  "message": "<p><b><strong>Compromised Credentials Playbook Results:</strong></b></p><p>The playbook was run and no accounts were found on the incident. </p>"
+                },
+                "path": "/Incidents/Comment"
+              }
+            }
+          }
+        },
+        "runAfter": {
+          "Set_\"arrAccounts\"_Variable": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Initialize_\"TranslateUPN\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "TranslateUPN",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"arrAccounts\"_Variable": [
+            "Succeeded"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "parameters": {
+      "$connections": {
+        "type": "Object",
+        "defaultValue": {}
+      }
+    }
+  },
+  "parameters": {
+    "$connections": {
+      "value": {
+        "azuresentinel-2": {
+          "id": "/subscriptions/39e54469-f2fe-4053-8e33-fd17df747170/providers/Microsoft.Web/locations/centralus/managedApis/azuresentinel",
+          "connectionId": "/subscriptions/39e54469-f2fe-4053-8e33-fd17df747170/resourceGroups/CUS_Sentinel_RG/providers/Microsoft.Web/connections/azuresentinel",
+          "connectionName": "azuresentinel",
+          "connectionProperties": {
+            "authentication": {
+              "type": "ManagedServiceIdentity",
+              "identity": "/subscriptions/39e54469-f2fe-4053-8e33-fd17df747170/resourceGroups/CUS_CyberManagedIdentities_RG/providers/Microsoft.ManagedIdentity/userAssignedIdentities/SentinelAutomation_CyberMI"
+            }
+          }
+        },
+        "azuremonitorlogs": {
+          "id": "/subscriptions/39e54469-f2fe-4053-8e33-fd17df747170/providers/Microsoft.Web/locations/centralus/managedApis/azuremonitorlogs",
+          "connectionId": "/subscriptions/39e54469-f2fe-4053-8e33-fd17df747170/resourceGroups/CUS_Sentinel_RG/providers/Microsoft.Web/connections/azuremonitorlogs",
+          "connectionName": "azuremonitorlogs",
+          "connectionProperties": {
+            "authentication": {
+              "type": "ManagedServiceIdentity",
+              "identity": "/subscriptions/39e54469-f2fe-4053-8e33-fd17df747170/resourceGroups/CUS_CyberManagedIdentities_RG/providers/Microsoft.ManagedIdentity/userAssignedIdentities/SentinelAutomation_CyberMI"
+            }
+          }
+        }
+      }
+    }
+  }
+}
