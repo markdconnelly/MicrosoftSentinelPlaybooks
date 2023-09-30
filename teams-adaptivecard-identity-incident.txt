@@ -1,0 +1,203 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.3",
+  "body": [
+    {
+      "size": "Large",
+      "text": "New identity incident created",
+      "type": "TextBlock",
+      "wrap": true
+    },
+    {
+      "text": "[Click here to view the Incident](X)",
+      "type": "TextBlock",
+      "wrap": true
+    },
+    {
+      "facts": [
+        {
+          "size": "medium",
+          "spacing": "large",
+          "title": "Incident Title",
+          "value": "X"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Incident ID",
+          "value": "X"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Incident Creation time (UTC)",
+          "value": "X"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Severity",
+          "value": "X"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Tactics",
+          "value": "X"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Description",
+          "value": "X"
+        },
+        {
+          "spacing": "Medium",
+          "title": "Entities",
+          "value": "X"
+        }
+      ],
+      "type": "FactSet"
+    },
+    {
+      "size": "Large",
+      "spacing": "Large",
+      "text": "Respond:",
+      "type": "TextBlock",
+      "weight": "Bolder"
+    },
+    {
+      "size": "Small",
+      "style": "Person",
+      "type": "Image",
+      "url": "https://connectoricons-prod.azureedge.net/releases/v1.0.1391/1.0.1391.2130/azuresentinel/icon.png"
+    },
+    {
+      "text": "Update Incident Title?",
+      "type": "TextBlock"
+    },
+    {
+      "type": "Input.Text",
+      "id": "IncidentTitle",
+      "placeholder": "Leaving this blank makes no changes to the title",
+      "maxLength": 35
+    },	
+    {
+      "text": "Close Microsoft Sentinel incident?",
+      "type": "TextBlock"
+    },
+    {
+      "choices": [
+        {
+          "title": "Close incident - False Positive",
+          "value": "FalsePositive - IncorrectAlertLogic"
+        },
+        {
+          "title": "Close incident - True Positive",
+          "value": "TruePositive - SuspiciousActivity"
+        },
+        {
+          "title": "Close incident - Benign Positive",
+          "value": "BenignPositive - SuspiciousButExpected"
+        },
+        {
+          "isSelected": true,
+          "title": "Don't close the incident",
+          "value": "no"
+        }
+      ],
+      "id": "incidentStatus",
+      "style": "compact",
+      "type": "Input.ChoiceSet",
+      "value": "no"
+    },
+    {
+      "text": "Change Microsoft Sentinel incident severity?",
+      "type": "TextBlock"
+    },
+    {
+      "choices": [
+        {
+          "title": "High",
+          "value": "High"
+        },
+        {
+          "title": "Medium",
+          "value": "Medium"
+        },
+        {
+          "title": "Low",
+          "value": "Low"
+        },
+        {
+          "title": "Informational",
+          "value": "Informational"
+        },
+        {
+          "isSelected": true,
+          "title": "Don't change",
+          "value": "same"
+        }
+      ],
+      "id": "incidentSeverity",
+      "style": "compact",
+      "type": "Input.ChoiceSet",
+      "value": "same"
+    },
+    {
+      "text": "Perform an Automated Response?",
+      "type": "TextBlock"
+    },
+    {
+      "choices": [
+        {
+          "title": "Request User Feedback",
+          "value": "RequestUserFeedback"
+        },
+        {
+          "title": "Perform Incident Enrichment",
+          "value": "PerformIncidentEnrichment"
+        },
+        {
+          "title": "Lock User",
+          "value": "LockUser"
+        },
+        {
+          "title": "Lock Machine",
+          "value": "LockMachine"
+        },
+        {
+          "title": "Lock User & Machine",
+          "value": "LockUserAndMachine"
+        },		
+        {
+          "isSelected": true,
+          "title": "No Automation",
+          "value": "NoAutomation"
+        }
+      ],
+      "id": "automationChoice",
+      "style": "compact",
+      "type": "Input.ChoiceSet",
+      "value": "NoAutomation"
+    },
+	    {
+      "type": "Input.Toggle",
+      "id": "MakeMajorIncident",
+      "title": "Make Major Incident?",
+      "value": "false",
+      "valueOn": "true",
+      "valueOff": "false",
+      "label": "Please check the box below to initiate major incident procedures in addition to the options selected above:",
+      "isRequired": true,
+      "errorMessage": "You must accept the terms to continue."
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.Submit",
+      "title": "Submit response!",
+      "associatedInputs": "auto",
+      "data": {
+        "x": "confirm"
+      },
+	  "id": "ButtonSubmit"
+    }
+  ]
+}
