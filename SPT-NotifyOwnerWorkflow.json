@@ -42,6 +42,12 @@
         "runAfter": {
           "Initialize_variable_-_MajorIncidentNotifyMembers": [
             "Succeeded"
+          ],
+          "Initialize_variable_-MajorIncidentTeamChannel": [
+            "Succeeded"
+          ],
+          "Initialize_variable_-_MajorIncidentTeamId": [
+            "Succeeded"
           ]
         }
       },
@@ -141,7 +147,11 @@
             }
           ]
         },
-        "runAfter": {}
+        "runAfter": {
+          "Initialize_variable_-_MajorIncidentDistro": [
+            "Succeeded"
+          ]
+        }
       },
       "Switch_-_IncidentSeverity": {
         "type": "Switch",
@@ -270,12 +280,12 @@
           }
         },
         "runAfter": {
-          "Condition_-_MajorIncident": [
+          "Condition_-_MajorIncident_TeamsRoutine": [
             "Succeeded"
           ]
         }
       },
-      "Condition_-_MajorIncident": {
+      "Condition_-_MajorIncident_TeamsRoutine": {
         "type": "If",
         "expression": {
           "and": [
@@ -352,8 +362,8 @@
               "path": "/beta/teams/@{encodeURIComponent(body('Create_a_Major_Incident_Team')?['newTeamId'])}/members"
             },
             "runAfter": {
-              "Set_variable_-MajorIncidentTeamsId": [
-                "SUCCEEDED"
+              "Set_variable_-MajorIncidentTeamChannel": [
+                "Succeeded"
               ]
             }
           },
@@ -366,113 +376,14 @@
                 }
               },
               "method": "get",
-              "path": "/v1.0/groups/@{encodeURIComponent('9a4c23ef-d0ad-4f12-bae6-e8bf2a406692')}/members",
+              "path": "/v1.0/groups/@{encodeURIComponent(variables('MajorIncidentDistro'))}/members",
               "queries": {
                 "$top": 10
               }
             },
             "runAfter": {
-              "Set_variable_-_MajorIncidentChannel": [
-                "SUCCEEDED"
-              ]
-            }
-          },
-          "Set_variable_-_MajorIncidentNotifyMembers": {
-            "type": "SetVariable",
-            "inputs": {
-              "name": "MajorIncidentNotifyMembers",
-              "value": "@body('List_MajorIncidentNotify_members')?['value']"
-            },
-            "runAfter": {
-              "List_MajorIncidentNotify_members": [
-                "SUCCEEDED"
-              ]
-            }
-          },
-          "Set_variable_-MajorIncidentTeamsId": {
-            "type": "SetVariable",
-            "inputs": {
-              "name": "MajorIncidentTeamId",
-              "value": "@body('Create_a_Major_Incident_Team')?['newTeamId']"
-            },
-            "runAfter": {
-              "Create_a_Major_Incident_Team": [
+              "Add_Submitter_as_Owner": [
                 "Succeeded"
-              ]
-            }
-          },
-          "For_each_member": {
-            "type": "foreach",
-            "foreach": "@body('List_MajorIncidentNotify_members')?['value']",
-            "actions": {
-              "Add_member_to_team": {
-                "type": "ApiConnection",
-                "inputs": {
-                  "host": {
-                    "connection": {
-                      "name": "@parameters('$connections')['teams-2']['connectionId']"
-                    }
-                  },
-                  "method": "post",
-                  "body": {
-                    "userId": "@items('For_each_member')?['userPrincipalName']"
-                  },
-                  "path": "/beta/teams/@{encodeURIComponent(variables('MajorIncidentTeamId'))}/members"
-                }
-              }
-            },
-            "runAfter": {
-              "Set_variable_-_MajorIncidentNotifyMembers": [
-                "SUCCEEDED"
-              ]
-            }
-          },
-          "Create_major_incident_meeting": {
-            "type": "ApiConnection",
-            "inputs": {
-              "host": {
-                "connection": {
-                  "name": "@parameters('$connections')['teams-2']['connectionId']"
-                }
-              },
-              "method": "post",
-              "body": {
-                "subject": "@body('Update_to_Major_Incident')?['properties']?['title']",
-                "body": {
-                  "content": "This meeting is kicking off because an incident was escalated to a major incident. Incident ID:\n@{triggerBody()?['object']?['properties']?['incidentNumber']}\nIncident URL: \n@{triggerBody()?['object']?['properties']?['incidentUrl']}\nIncident Description:\n@{triggerBody()?['object']?['properties']?['description']}",
-                  "contentType": "html"
-                },
-                "timeZone": "Central Standard Time",
-                "start": {
-                  "dateTime": "@{utcNow()}"
-                },
-                "end": {
-                  "dateTime": "@{addHours(utcNow(),3)}"
-                },
-                "isOnlineMeeting": true,
-                "onlineMeetingProvider": "teamsForBusiness",
-                "importance": "high",
-                "isAllDay": true,
-                "requiredAttendees": "@triggerBody()?['object']?['properties']?['owner']?['email']",
-                "optionalAttendees": "@{join(item()?['mail'], ';' )}"
-              },
-              "path": "/v1.0/me/calendars/@{encodeURIComponent('Calendar')}/events"
-            },
-            "runAfter": {
-              "For_each_member": [
-                "SUCCEEDED"
-              ]
-            }
-          },
-          "Set_variable_-_MajorIncidentMeetingId": {
-            "type": "SetVariable",
-            "inputs": {
-              "name": "MajorIncidentMeetingId",
-              "value": "@body('Create_major_incident_meeting')?['id']"
-            },
-            "runAfter": {
-              "Create_major_incident_meeting": [
-                "SUCCEEDED"
               ]
             }
           },
@@ -486,18 +397,29 @@
               },
               "method": "post",
               "body": {
-                "displayName": "Evidence",
-                "description": "This channel is used as a storage location for evidence collection related to the major incident. "
+                "displayName": "Evidence"
               },
               "path": "/beta/groups/@{encodeURIComponent(variables('MajorIncidentTeamId'))}/channels"
             },
             "runAfter": {
-              "Add_Submitter_as_Owner": [
+              "Set_variable_-_MajorIncidentTeamId": [
                 "Succeeded"
               ]
             }
           },
-          "Set_variable_-_MajorIncidentChannel": {
+          "Set_variable_-_MajorIncidentTeamId": {
+            "type": "SetVariable",
+            "inputs": {
+              "name": "MajorIncidentTeamId",
+              "value": "@body('Create_a_Major_Incident_Team')?['newTeamId']"
+            },
+            "runAfter": {
+              "Create_a_Major_Incident_Team": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Set_variable_-MajorIncidentTeamChannel": {
             "type": "SetVariable",
             "inputs": {
               "name": "MajorIncidentTeamChannel",
@@ -505,7 +427,71 @@
             },
             "runAfter": {
               "Create_an_evidence_channel": [
-                "SUCCEEDED"
+                "Succeeded"
+              ]
+            }
+          },
+          "For_each_Member": {
+            "type": "Foreach",
+            "foreach": "@body('List_MajorIncidentNotify_members')?['value']",
+            "actions": {
+              "Add_member_to_team": {
+                "type": "ApiConnection",
+                "inputs": {
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['teams-2']['connectionId']"
+                    }
+                  },
+                  "method": "post",
+                  "body": {
+                    "userId": "@items('For_each_Member')?['userPrincipalName']"
+                  },
+                  "path": "/beta/teams/@{encodeURIComponent(variables('MajorIncidentTeamId'))}/members"
+                }
+              }
+            },
+            "runAfter": {
+              "List_MajorIncidentNotify_members": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Start_Major_Incident_Meeting": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['teams-2']['connectionId']"
+                }
+              },
+              "method": "post",
+              "body": {
+                "subject": "@body('Update_to_Major_Incident')?['properties']?['title']",
+                "body": {
+                  "content": "This incident has been elavated to a major incident. ",
+                  "contentType": "html"
+                },
+                "timeZone": "Central Standard Time",
+                "start": {
+                  "dateTime": "@{utcNow()}"
+                },
+                "end": {
+                  "dateTime": "@{addHours(utcNow(), 5)}"
+                },
+                "isOnlineMeeting": true,
+                "onlineMeetingProvider": "teamsForBusiness",
+                "importance": "high",
+                "isAllDay": true,
+                "responseRequested": true,
+                "requiredAttendees": "@triggerBody()?['object']?['properties']?['owner']?['email']",
+                "optionalAttendees": "@{join(item()?['mail'], ';')}"
+              },
+              "path": "/v1.0/me/calendars/@{encodeURIComponent('Calendar')}/events"
+            },
+            "runAfter": {
+              "For_each_Member": [
+                "Succeeded"
               ]
             }
           }
@@ -514,13 +500,7 @@
           "actions": {}
         },
         "runAfter": {
-          "Switch_-_IncidentStatus": [
-            "Succeeded"
-          ],
-          "Switch_-_IncidentSeverity": [
-            "Succeeded"
-          ],
-          "Condition_-_IncidentTitle": [
+          "Delay_30_Seconds": [
             "Succeeded"
           ]
         }
@@ -575,7 +555,7 @@
           ]
         },
         "runAfter": {
-          "Initialize_variable_-_MajorIncidentTeamId": [
+          "Initialize_variable_-_MajorIncidentDistro": [
             "Succeeded"
           ]
         }
@@ -591,26 +571,74 @@
           ]
         },
         "runAfter": {
-          "Initialize_variable_-_MajorIncidentMeetingId": [
-            "SUCCEEDED"
+          "Initialize_variable_-_MajorIncidentDistro": [
+            "Succeeded"
           ]
         }
       },
-      "Initialize_variable_-_MajorIncidentMeetingId": {
+      "Delay_30_Seconds": {
+        "type": "Wait",
+        "inputs": {
+          "interval": {
+            "count": 30,
+            "unit": "Second"
+          }
+        },
+        "runAfter": {
+          "Switch_-_IncidentStatus": [
+            "Succeeded"
+          ],
+          "Switch_-_IncidentSeverity": [
+            "Succeeded"
+          ],
+          "Condition_-_IncidentTitle": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Condition_-_MajorIncident_EmailRoutine": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@body('Post_Incident_Response_Card')?['data']?['makeMajorIncident']",
+                true
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Delay_2_Hours": {
+            "type": "Wait",
+            "inputs": {
+              "interval": {
+                "count": 2,
+                "unit": "Hour"
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Delay_30_Seconds": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Initialize_variable_-_MajorIncidentDistro": {
         "type": "InitializeVariable",
         "inputs": {
           "variables": [
             {
-              "name": "MajorIncidentMeetingId",
+              "name": "MajorIncidentDistro",
               "type": "string"
             }
           ]
         },
-        "runAfter": {
-          "Initialize_variable_-MajorIncidentTeamChannel": [
-            "Succeeded"
-          ]
-        }
+        "runAfter": {}
       }
     },
     "parameters": {
