@@ -1,0 +1,81 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Microsoft_Sentinel_incident": {
+        "type": "ApiConnectionWebhook",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+            }
+          },
+          "body": {
+            "callback_url": "@{listCallbackUrl()}"
+          },
+          "path": "/incident-creation"
+        }
+      }
+    },
+    "actions": {
+      "Initialize_variable_-_AlertToRelate": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "AlertToRelate",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "Add_alert_to_incident": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": {
+            "incidentArmId": "@triggerBody()?['object']?['id']",
+            "relatedResourceId": "@variables('AlertToRelate')"
+          },
+          "path": "/Incidents/Relation/Create"
+        },
+        "runAfter": {
+          "Initialize_variable_-_AlertToRelate": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "parameters": {
+      "$connections": {
+        "type": "Object",
+        "defaultValue": {}
+      }
+    }
+  },
+  "parameters": {
+    "$connections": {
+      "value": {
+        "azuresentinel-2": {
+          "id": "/subscriptions/39e54469-f2fe-4053-8e33-fd17df747170/providers/Microsoft.Web/locations/centralus/managedApis/azuresentinel",
+          "connectionId": "/subscriptions/39e54469-f2fe-4053-8e33-fd17df747170/resourceGroups/CUS_Sentinel_RG/providers/Microsoft.Web/connections/azuresentinel",
+          "connectionName": "azuresentinel",
+          "connectionProperties": {
+            "authentication": {
+              "type": "ManagedServiceIdentity",
+              "identity": "/subscriptions/39e54469-f2fe-4053-8e33-fd17df747170/resourceGroups/CUS_CyberManagedIdentities_RG/providers/Microsoft.ManagedIdentity/userAssignedIdentities/SentinelAutomation_CyberMI"
+            }
+          }
+        }
+      }
+    }
+  }
+}
