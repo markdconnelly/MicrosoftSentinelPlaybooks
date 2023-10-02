@@ -1,0 +1,687 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Microsoft_Sentinel_incident": {
+        "type": "ApiConnectionWebhook",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['microsoftsentinel']['connectionId']"
+            }
+          },
+          "body": {
+            "callback_url": "@{listCallbackUrl()}"
+          },
+          "path": "/incident-creation"
+        }
+      }
+    },
+    "actions": {
+      "Post_Incident_Response_Card": {
+        "type": "ApiConnectionWebhook",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['teams-2']['connectionId']"
+            }
+          },
+          "body": {
+            "notificationUrl": "@{listCallbackUrl()}",
+            "body": {
+              "messageBody": "{\n  \"type\": \"AdaptiveCard\",\n  \"$schema\": \"http://adaptivecards.io/schemas/adaptive-card.json\",\n  \"version\": \"1.3\",\n  \"body\": [\n    {\n      \"size\": \"Large\",\n      \"text\": \"New identity incident created\",\n      \"type\": \"TextBlock\",\n      \"wrap\": true\n    },\n    {\n      \"text\": \"[Click here to view the Incident](X)\",\n      \"type\": \"TextBlock\",\n      \"wrap\": true\n    },\n    {\n      \"facts\": [\n        {\n          \"size\": \"medium\",\n          \"spacing\": \"large\",\n          \"title\": \"Incident Title\",\n          \"value\": \"X\"\n        },\n        {\n          \"spacing\": \"Medium\",\n          \"title\": \"Incident ID\",\n          \"value\": \"X\"\n        },\n        {\n          \"spacing\": \"Medium\",\n          \"title\": \"Incident Creation time (UTC)\",\n          \"value\": \"X\"\n        },\n        {\n          \"spacing\": \"Medium\",\n          \"title\": \"Severity\",\n          \"value\": \"X\"\n        },\n        {\n          \"spacing\": \"Medium\",\n          \"title\": \"Tactics\",\n          \"value\": \"X\"\n        },\n        {\n          \"spacing\": \"Medium\",\n          \"title\": \"Description\",\n          \"value\": \"X\"\n        },\n        {\n          \"spacing\": \"Medium\",\n          \"title\": \"Entities\",\n          \"value\": \"X\"\n        }\n      ],\n      \"type\": \"FactSet\"\n    },\n    {\n      \"size\": \"Large\",\n      \"spacing\": \"Large\",\n      \"text\": \"Respond:\",\n      \"type\": \"TextBlock\",\n      \"weight\": \"Bolder\"\n    },\n    {\n      \"size\": \"Small\",\n      \"style\": \"Person\",\n      \"type\": \"Image\",\n      \"url\": \"https://connectoricons-prod.azureedge.net/releases/v1.0.1391/1.0.1391.2130/azuresentinel/icon.png\"\n    },\n    {\n      \"text\": \"Update Incident Title?\",\n      \"type\": \"TextBlock\"\n    },\n    {\n      \"type\": \"Input.Text\",\n      \"id\": \"IncidentTitle\",\n      \"placeholder\": \"Leaving this blank makes no changes to the title\",\n      \"maxLength\": 35\n    },\t\n    {\n      \"text\": \"Close Microsoft Sentinel incident?\",\n      \"type\": \"TextBlock\"\n    },\n    {\n      \"choices\": [\n        {\n          \"title\": \"Close incident - False Positive\",\n          \"value\": \"FalsePositive - IncorrectAlertLogic\"\n        },\n        {\n          \"title\": \"Close incident - True Positive\",\n          \"value\": \"TruePositive - SuspiciousActivity\"\n        },\n        {\n          \"title\": \"Close incident - Benign Positive\",\n          \"value\": \"BenignPositive - SuspiciousButExpected\"\n        },\n        {\n          \"isSelected\": true,\n          \"title\": \"Don't close the incident\",\n          \"value\": \"no\"\n        }\n      ],\n      \"id\": \"incidentStatus\",\n      \"style\": \"compact\",\n      \"type\": \"Input.ChoiceSet\",\n      \"value\": \"no\"\n    },\n    {\n      \"text\": \"Change Microsoft Sentinel incident severity?\",\n      \"type\": \"TextBlock\"\n    },\n    {\n      \"choices\": [\n        {\n          \"title\": \"High\",\n          \"value\": \"High\"\n        },\n        {\n          \"title\": \"Medium\",\n          \"value\": \"Medium\"\n        },\n        {\n          \"title\": \"Low\",\n          \"value\": \"Low\"\n        },\n        {\n          \"title\": \"Informational\",\n          \"value\": \"Informational\"\n        },\n        {\n          \"isSelected\": true,\n          \"title\": \"Don't change\",\n          \"value\": \"same\"\n        }\n      ],\n      \"id\": \"incidentSeverity\",\n      \"style\": \"compact\",\n      \"type\": \"Input.ChoiceSet\",\n      \"value\": \"same\"\n    },\n    {\n      \"text\": \"Perform an Automated Response?\",\n      \"type\": \"TextBlock\"\n    },\n    {\n      \"choices\": [\n        {\n          \"title\": \"Request User Feedback\",\n          \"value\": \"RequestUserFeedback\"\n        },\n        {\n          \"title\": \"Perform Incident Enrichment\",\n          \"value\": \"PerformIncidentEnrichment\"\n        },\n        {\n          \"title\": \"Lock User\",\n          \"value\": \"LockUser\"\n        },\n        {\n          \"title\": \"Lock Machine\",\n          \"value\": \"LockMachine\"\n        },\n        {\n          \"title\": \"Lock User & Machine\",\n          \"value\": \"LockUserAndMachine\"\n        },\t\t\n        {\n          \"isSelected\": true,\n          \"title\": \"No Automation\",\n          \"value\": \"NoAutomation\"\n        }\n      ],\n      \"id\": \"automationChoice\",\n      \"style\": \"compact\",\n      \"type\": \"Input.ChoiceSet\",\n      \"value\": \"NoAutomation\"\n    },\n\t    {\n      \"type\": \"Input.Toggle\",\n      \"id\": \"MakeMajorIncident\",\n      \"title\": \"Make Major Incident?\",\n      \"value\": \"false\",\n      \"valueOn\": \"true\",\n      \"valueOff\": \"false\",\n      \"label\": \"Please check the box below to initiate major incident procedures in addition to the options selected above:\",\n      \"isRequired\": false,\n      \"errorMessage\": \"You must accept the terms to continue.\"\n    }\n  ],\n  \"actions\": [\n    {\n      \"type\": \"Action.Submit\",\n      \"title\": \"Submit response!\",\n      \"associatedInputs\": \"auto\",\n      \"data\": {\n        \"x\": \"confirm\"\n      },\n\t  \"id\": \"ButtonSubmit\"\n    }\n  ]\n}",
+              "updateMessage": "Follow up automation is processing now. ",
+              "recipient": {
+                "to": "mark@imperionllc.com"
+              }
+            }
+          },
+          "path": "/v1.0/teams/conversation/gatherinput/poster/@{encodeURIComponent('Flow bot')}/location/@{encodeURIComponent('Chat with Flow bot')}/$subscriptions"
+        },
+        "runAfter": {
+          "Initialize_variable_-_MajorIncidentNotifyMembers": [
+            "Succeeded"
+          ],
+          "Initialize_variable_-MajorIncidentTeamChannel": [
+            "Succeeded"
+          ],
+          "Initialize_variable_-_MajorIncidentTeamId": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Switch_-_IncidentStatus": {
+        "type": "Switch",
+        "expression": "@body('Post_Incident_Response_Card')?['data']?['incidentStatus']",
+        "default": {
+          "actions": {}
+        },
+        "cases": {
+          "Case-FalsePositive": {
+            "actions": {
+              "Update_Status_-_FalsePositive": {
+                "type": "ApiConnection",
+                "inputs": {
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+                    }
+                  },
+                  "method": "put",
+                  "body": {
+                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                    "status": "Closed",
+                    "classification": {
+                      "ClassificationAndReason": "FalsePositive - IncorrectAlertLogic"
+                    }
+                  },
+                  "path": "/Incidents"
+                }
+              }
+            },
+            "case": "FalsePositive - IncorrectAlertLogic"
+          },
+          "Case-BenignPositive": {
+            "actions": {
+              "Update_Status_-_BenignPositive": {
+                "type": "ApiConnection",
+                "inputs": {
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+                    }
+                  },
+                  "method": "put",
+                  "body": {
+                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                    "status": "Closed",
+                    "classification": {
+                      "ClassificationAndReason": "BenignPositive - SuspiciousButExpected"
+                    }
+                  },
+                  "path": "/Incidents"
+                }
+              }
+            },
+            "case": "BenignPositive - SuspiciousButExpected"
+          },
+          "Case-TruePositive": {
+            "actions": {
+              "Update_Status_-_TruePositive": {
+                "type": "ApiConnection",
+                "inputs": {
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+                    }
+                  },
+                  "method": "put",
+                  "body": {
+                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                    "status": "Closed",
+                    "classification": {
+                      "ClassificationAndReason": "TruePositive - SuspiciousActivity"
+                    }
+                  },
+                  "path": "/Incidents"
+                }
+              }
+            },
+            "case": "TruePositive - SuspiciousActivity"
+          }
+        },
+        "runAfter": {
+          "Post_Incident_Response_Card": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Initialize_variable_-_MajorIncidentTeamId": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "MajorIncidentTeamId",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_variable_-_MajorIncidentDistro": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Switch_-_IncidentSeverity": {
+        "type": "Switch",
+        "expression": "@body('Post_Incident_Response_Card')?['data']?['incidentSeverity']",
+        "default": {
+          "actions": {}
+        },
+        "cases": {
+          "Case-High": {
+            "actions": {
+              "Update_Severity_-_High": {
+                "type": "ApiConnection",
+                "inputs": {
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+                    }
+                  },
+                  "method": "put",
+                  "body": {
+                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                    "severity": "High",
+                    "description": "Severity updated to High via automation by @{body('Post_Incident_Response_Card')?['responder']?['displayName']}"
+                  },
+                  "path": "/Incidents"
+                }
+              }
+            },
+            "case": "High"
+          },
+          "Case-Medium": {
+            "actions": {
+              "Update_Severity_-_Medium": {
+                "type": "ApiConnection",
+                "inputs": {
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+                    }
+                  },
+                  "method": "put",
+                  "body": {
+                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                    "severity": "Medium",
+                    "description": "Severity updated to Medium via automation by @{body('Post_Incident_Response_Card')?['responder']?['displayName']}"
+                  },
+                  "path": "/Incidents"
+                }
+              }
+            },
+            "case": "Medium"
+          },
+          "Case-Low": {
+            "actions": {
+              "Update_Severity_-_Low": {
+                "type": "ApiConnection",
+                "inputs": {
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+                    }
+                  },
+                  "method": "put",
+                  "body": {
+                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                    "severity": "Low",
+                    "description": "Severity updated to Low via automation by @{body('Post_Incident_Response_Card')?['responder']?['displayName']}"
+                  },
+                  "path": "/Incidents"
+                }
+              }
+            },
+            "case": "Low"
+          },
+          "Case-Informational": {
+            "actions": {
+              "Update_Severity_-_Informational": {
+                "type": "ApiConnection",
+                "inputs": {
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+                    }
+                  },
+                  "method": "put",
+                  "body": {
+                    "incidentArmId": "@triggerBody()?['object']?['id']",
+                    "severity": "Informational",
+                    "description": "Severity updated to Informational via automation by @{body('Post_Incident_Response_Card')?['responder']?['displayName']}"
+                  },
+                  "path": "/Incidents"
+                }
+              }
+            },
+            "case": "Informational"
+          }
+        },
+        "runAfter": {
+          "Post_Incident_Response_Card": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Switch_-_AutomationChoice": {
+        "type": "Switch",
+        "expression": "@body('Post_Incident_Response_Card')?['data']?['automationChoice']",
+        "default": {
+          "actions": {}
+        },
+        "cases": {
+          "Case-UserFeedback": {
+            "actions": {},
+            "case": "RequestUserFeedback"
+          },
+          "Case-Enrich": {
+            "actions": {},
+            "case": "PerformIncidentEnrichment"
+          },
+          "Case-LockUser": {
+            "actions": {},
+            "case": "LockUser"
+          },
+          "Case-LockMachine": {
+            "actions": {},
+            "case": "LockMachine"
+          }
+        },
+        "runAfter": {
+          "Condition_-_MajorIncident_TeamsRoutine": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Condition_-_MajorIncident_TeamsRoutine": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@body('Post_Incident_Response_Card')?['data']?['makeMajorIncident']",
+                true
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Update_to_Major_Incident": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+                }
+              },
+              "method": "put",
+              "body": {
+                "incidentArmId": "@triggerBody()?['object']?['id']",
+                "tagsToAdd": {
+                  "TagsToAdd": [
+                    {
+                      "Tag": "Major Incident"
+                    }
+                  ]
+                },
+                "ownerAction": "Assign",
+                "owner": "@body('Post_Incident_Response_Card')?['responder']?['userPrincipalName']",
+                "severity": "High",
+                "status": "Active",
+                "title": "MI@{body('Update_Status_-_FalsePositive')?['properties']?['incidentNumber']}-@{triggerBody()?['object']?['properties']?['title']}"
+              },
+              "path": "/Incidents"
+            }
+          },
+          "Create_a_Major_Incident_Team": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['teams-2']['connectionId']"
+                }
+              },
+              "method": "post",
+              "body": {
+                "displayName": "@body('Update_to_Major_Incident')?['properties']?['title']",
+                "description": "This is a team used to triage the major incident @{body('Update_to_Major_Incident')?['properties']?['title']}",
+                "visibility": "Private"
+              },
+              "path": "/beta/teams"
+            },
+            "runAfter": {
+              "Update_to_Major_Incident": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Add_Submitter_as_Owner": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['teams-2']['connectionId']"
+                }
+              },
+              "method": "post",
+              "body": {
+                "userId": "@body('Post_Incident_Response_Card')?['responder']?['userPrincipalName']"
+              },
+              "path": "/beta/teams/@{encodeURIComponent(body('Create_a_Major_Incident_Team')?['newTeamId'])}/members"
+            },
+            "runAfter": {
+              "Set_variable_-MajorIncidentTeamChannel": [
+                "Succeeded"
+              ]
+            }
+          },
+          "List_MajorIncidentNotify_members": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['office365groups']['connectionId']"
+                }
+              },
+              "method": "get",
+              "path": "/v1.0/groups/@{encodeURIComponent(variables('MajorIncidentDistro'))}/members",
+              "queries": {
+                "$top": 10
+              }
+            },
+            "runAfter": {
+              "Add_Submitter_as_Owner": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Create_an_evidence_channel": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['teams-2']['connectionId']"
+                }
+              },
+              "method": "post",
+              "body": {
+                "displayName": "Evidence"
+              },
+              "path": "/beta/groups/@{encodeURIComponent(variables('MajorIncidentTeamId'))}/channels"
+            },
+            "runAfter": {
+              "Set_variable_-_MajorIncidentTeamId": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Set_variable_-_MajorIncidentTeamId": {
+            "type": "SetVariable",
+            "inputs": {
+              "name": "MajorIncidentTeamId",
+              "value": "@body('Create_a_Major_Incident_Team')?['newTeamId']"
+            },
+            "runAfter": {
+              "Create_a_Major_Incident_Team": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Set_variable_-MajorIncidentTeamChannel": {
+            "type": "SetVariable",
+            "inputs": {
+              "name": "MajorIncidentTeamChannel",
+              "value": "@body('Create_an_evidence_channel')?['displayName']"
+            },
+            "runAfter": {
+              "Create_an_evidence_channel": [
+                "Succeeded"
+              ]
+            }
+          },
+          "For_each_Member": {
+            "type": "Foreach",
+            "foreach": "@body('List_MajorIncidentNotify_members')?['value']",
+            "actions": {
+              "Add_member_to_team": {
+                "type": "ApiConnection",
+                "inputs": {
+                  "host": {
+                    "connection": {
+                      "name": "@parameters('$connections')['teams-2']['connectionId']"
+                    }
+                  },
+                  "method": "post",
+                  "body": {
+                    "userId": "@items('For_each_Member')?['userPrincipalName']"
+                  },
+                  "path": "/beta/teams/@{encodeURIComponent(variables('MajorIncidentTeamId'))}/members"
+                }
+              }
+            },
+            "runAfter": {
+              "List_MajorIncidentNotify_members": [
+                "Succeeded"
+              ]
+            }
+          },
+          "Start_Major_Incident_Meeting": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['teams-2']['connectionId']"
+                }
+              },
+              "method": "post",
+              "body": {
+                "subject": "@body('Update_to_Major_Incident')?['properties']?['title']",
+                "body": {
+                  "content": "This incident has been elavated to a major incident. ",
+                  "contentType": "html"
+                },
+                "timeZone": "Central Standard Time",
+                "start": {
+                  "dateTime": "@{utcNow()}"
+                },
+                "end": {
+                  "dateTime": "@{addHours(utcNow(), 5)}"
+                },
+                "isOnlineMeeting": true,
+                "onlineMeetingProvider": "teamsForBusiness",
+                "importance": "high",
+                "isAllDay": true,
+                "responseRequested": true,
+                "requiredAttendees": "@triggerBody()?['object']?['properties']?['owner']?['email']",
+                "optionalAttendees": "@{join(item()?['mail'], ';')}"
+              },
+              "path": "/v1.0/me/calendars/@{encodeURIComponent('Calendar')}/events"
+            },
+            "runAfter": {
+              "For_each_Member": [
+                "Succeeded"
+              ]
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Delay_30_Seconds": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Condition_-_IncidentTitle": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "greater": [
+                "@body('Post_Incident_Response_Card')?['data']?['incidentTitle']",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Update_Title": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+                }
+              },
+              "method": "put",
+              "body": {
+                "incidentArmId": "@triggerBody()?['object']?['id']",
+                "title": "@body('Post_Incident_Response_Card')?['data']?['incidentTitle']"
+              },
+              "path": "/Incidents"
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Post_Incident_Response_Card": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Initialize_variable_-MajorIncidentTeamChannel": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "MajorIncidentTeamChannel",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_variable_-_MajorIncidentDistro": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Initialize_variable_-_MajorIncidentNotifyMembers": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "MajorIncidentNotifyMembers",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_variable_-_MajorIncidentDistro": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Delay_30_Seconds": {
+        "type": "Wait",
+        "inputs": {
+          "interval": {
+            "count": 30,
+            "unit": "Second"
+          }
+        },
+        "runAfter": {
+          "Switch_-_IncidentStatus": [
+            "Succeeded"
+          ],
+          "Switch_-_IncidentSeverity": [
+            "Succeeded"
+          ],
+          "Condition_-_IncidentTitle": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Condition_-_MajorIncident_EmailRoutine": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "@body('Post_Incident_Response_Card')?['data']?['makeMajorIncident']",
+                true
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Delay_2_Hours": {
+            "type": "Wait",
+            "inputs": {
+              "interval": {
+                "count": 2,
+                "unit": "Hour"
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Delay_30_Seconds": [
+            "Succeeded"
+          ]
+        }
+      },
+      "Initialize_variable_-_MajorIncidentDistro": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "MajorIncidentDistro",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {}
+      }
+    },
+    "parameters": {
+      "$connections": {
+        "type": "Object",
+        "defaultValue": {}
+      }
+    }
+  },
+  "parameters": {
+    "$connections": {
+      "value": {
+        "microsoftsentinel": {
+          "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/Azuresentinel",
+          "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/MicrosoftSentinel-SPT-NotifyOwnerWorkflow",
+          "connectionName": "MicrosoftSentinel-SPT-NotifyOwnerWorkflow",
+          "connectionProperties": {
+            "authentication": {
+              "type": "ManagedServiceIdentity"
+            }
+          }
+        },
+        "teams-2": {
+          "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/teams",
+          "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/teams",
+          "connectionName": "teams"
+        },
+        "azuresentinel-2": {
+          "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/azuresentinel",
+          "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/azuresentinel",
+          "connectionName": "azuresentinel",
+          "connectionProperties": {
+            "authentication": {
+              "type": "ManagedServiceIdentity"
+            }
+          }
+        },
+        "office365groups": {
+          "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/office365groups",
+          "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/office365groups",
+          "connectionName": "office365groups"
+        }
+      }
+    }
+  }
+}

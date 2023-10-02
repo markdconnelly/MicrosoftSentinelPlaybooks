@@ -1,0 +1,511 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "triggers": {
+      "Microsoft_Sentinel_incident": {
+        "type": "ApiConnectionWebhook",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+            }
+          },
+          "body": {
+            "callback_url": "@{listCallbackUrl()}"
+          },
+          "path": "/incident-creation"
+        }
+      }
+    },
+    "actions": {
+      "Initialize_\"arrURLs\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrURLs",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"IncidentEnrichmentOutput\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Entities_-_Get_Accounts": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-2']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+          "path": "/entities/account"
+        },
+        "runAfter": {
+          "Initialize_\"arrAccounts\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Initialize_\"arrDNS\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrDNS",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"IncidentEnrichmentOutput\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Initialize_\"arrHosts\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrHosts",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"IncidentEnrichmentOutput\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Initialize_\"arrIPs\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrIPs",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"IncidentEnrichmentOutput\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Entities_-_Get_Hosts": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-3']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+          "path": "/entities/host"
+        },
+        "runAfter": {
+          "Initialize_\"arrHosts\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Entities_-_Get_URLs": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-3']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+          "path": "/entities/url"
+        },
+        "runAfter": {
+          "Initialize_\"arrURLs\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Entities_-_Get_DNS": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-3']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+          "path": "/entities/dnsresolution"
+        },
+        "runAfter": {
+          "Initialize_\"arrDNS\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Entities_-_Get_IPs": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-3']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+          "path": "/entities/ip"
+        },
+        "runAfter": {
+          "Initialize_\"arrIPs\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "If_\"Accounts\"_Gr8r_Than_0": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "greater": [
+                "@variables('arrAccounts')",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "Investigate_Sign_In_logic_Here": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['azuremonitorlogs']['connectionId']"
+                }
+              },
+              "method": "post",
+              "body": "SigninLogs \n| extend OS = DeviceDetail.operatingSystem, Browser = DeviceDetail.browser\n| extend ConditionalAccessPol0Name = tostring(ConditionalAccessPolicies[0].displayName), ConditionalAccessPol0Result = tostring(ConditionalAccessPolicies[0].result)\n| extend ConditionalAccessPol1Name = tostring(ConditionalAccessPolicies[1].displayName), ConditionalAccessPol1Result = tostring(ConditionalAccessPolicies[1].result)\n| extend ConditionalAccessPol2Name = tostring(ConditionalAccessPolicies[2].displayName), ConditionalAccessPol2Result = tostring(ConditionalAccessPolicies[2].result)\n| extend StatusCode = tostring(Status.errorCode), StatusDetails = tostring(Status.additionalDetails)\n| extend State = tostring(LocationDetails.state), City = tostring(LocationDetails.city)\n| extend Date = startofday(TimeGenerated), Hour = datetime_part(\"Hour\", TimeGenerated)\n| summarize count() by Date, Identity, UserDisplayName, UserPrincipalName, IPAddress, ResultType, ResultDescription, StatusCode, StatusDetails, \nConditionalAccessPol0Name, ConditionalAccessPol0Result, ConditionalAccessPol1Name, ConditionalAccessPol1Result, ConditionalAccessPol2Name, ConditionalAccessPol2Result, \nLocation, State, City\n| extend timestamp = Date, AccountCustomEntity = UserPrincipalName, IPCustomEntity = IPAddress\n| sort by Date",
+              "path": "/queryData",
+              "queries": {
+                "subscriptions": "de46bab3-a956-4eb7-a983-8e4d98aa343d",
+                "resourcegroups": "CUS_CyberOperations",
+                "resourcetype": "Log Analytics Workspace",
+                "resourcename": "CUS-SentinelWorkspaceV2",
+                "timerange": "Last 7 days"
+              }
+            }
+          }
+        },
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Set_\"arrAccounts\"_variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Set_\"arrAccounts\"_variable": {
+        "type": "SetVariable",
+        "inputs": {
+          "name": "arrAccounts",
+          "value": "@body('Entities_-_Get_Accounts')?['Accounts']"
+        },
+        "runAfter": {
+          "Entities_-_Get_Accounts": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Set_\"arrIPs\"_Variable": {
+        "type": "SetVariable",
+        "inputs": {
+          "name": "arrIPs",
+          "value": "@body('Entities_-_Get_IPs')?['IPs']"
+        },
+        "runAfter": {
+          "Entities_-_Get_IPs": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Set_\"arrDNS\"_Variable": {
+        "type": "SetVariable",
+        "inputs": {
+          "name": "arrDNS",
+          "value": "@body('Entities_-_Get_DNS')?['Dnsresolutions']"
+        },
+        "runAfter": {
+          "Entities_-_Get_DNS": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Set_\"arrURLs\"_Variable": {
+        "type": "SetVariable",
+        "inputs": {
+          "name": "arrURLs",
+          "value": "@body('Entities_-_Get_URLs')?['URLs']"
+        },
+        "runAfter": {
+          "Entities_-_Get_URLs": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Set_\"arrHosts\"_Variable": {
+        "type": "SetVariable",
+        "inputs": {
+          "name": "arrHosts",
+          "value": "@body('Entities_-_Get_Hosts')?['Hosts']"
+        },
+        "runAfter": {
+          "Entities_-_Get_Hosts": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "If_\"IPs\"_Gr8r_Than_0": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "greater": [
+                "@variables('arrIPs')",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {},
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Set_\"arrIPs\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "If_\"DNS\"_Gr8r_Than_0": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "greater": [
+                "@variables('arrDNS')",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {},
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Set_\"arrDNS\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "If_\"URLs\"_Gr8r_Thn_0": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "greater": [
+                "@variables('arrURLs')",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {},
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Set_\"arrURLs\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "If_\"Host\"_Gr8r_Thn_0": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "greater": [
+                "@variables('arrHosts')",
+                0
+              ]
+            }
+          ]
+        },
+        "actions": {},
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Set_\"arrHosts\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Initialize_\"IncidentEnrichmentOutput\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "IncidentEnrichmentOutput",
+              "type": "string"
+            }
+          ]
+        },
+        "runAfter": {}
+      },
+      "Initialize_\"arrAccounts\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrAccounts",
+              "type": "boolean"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"IncidentEnrichmentOutput\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Initialize_\"arrHash\"_Variable": {
+        "type": "InitializeVariable",
+        "inputs": {
+          "variables": [
+            {
+              "name": "arrHashes",
+              "type": "array"
+            }
+          ]
+        },
+        "runAfter": {
+          "Initialize_\"IncidentEnrichmentOutput\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Entities_-_Get_FileHashes": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel-3']['connectionId']"
+            }
+          },
+          "method": "post",
+          "body": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+          "path": "/entities/filehash"
+        },
+        "runAfter": {
+          "Initialize_\"arrHash\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "Set_\"arrHashes\"_Variable": {
+        "type": "SetVariable",
+        "inputs": {
+          "name": "arrHashes",
+          "value": "@body('Entities_-_Get_FileHashes')?['Filehashes']"
+        },
+        "runAfter": {
+          "Entities_-_Get_FileHashes": [
+            "SUCCEEDED"
+          ]
+        }
+      },
+      "If_\"Hash\"_Gr8r_Thn_0": {
+        "type": "If",
+        "expression": {
+          "and": [
+            {
+              "equals": [
+                "",
+                ""
+              ]
+            }
+          ]
+        },
+        "actions": {},
+        "else": {
+          "actions": {}
+        },
+        "runAfter": {
+          "Set_\"arrHashes\"_Variable": [
+            "SUCCEEDED"
+          ]
+        }
+      }
+    },
+    "outputs": {},
+    "parameters": {
+      "$connections": {
+        "type": "Object",
+        "defaultValue": {}
+      }
+    }
+  },
+  "parameters": {
+    "$connections": {
+      "value": {
+        "azuresentinel-2": {
+          "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/azuresentinel",
+          "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/azuresentinel",
+          "connectionName": "azuresentinel",
+          "connectionProperties": {
+            "authentication": {
+              "type": "ManagedServiceIdentity",
+              "identity": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_IdentitySecurity/providers/Microsoft.ManagedIdentity/userAssignedIdentities/CyberAutomationMI"
+            }
+          }
+        },
+        "azuresentinel-3": {
+          "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/azuresentinel",
+          "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/azuresentinel-Test-PhishingResponseFromScratch",
+          "connectionName": "azuresentinel-Test-PhishingResponseFromScratch",
+          "connectionProperties": {
+            "authentication": {
+              "type": "ManagedServiceIdentity",
+              "identity": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_IdentitySecurity/providers/Microsoft.ManagedIdentity/userAssignedIdentities/CyberAutomationMI"
+            }
+          }
+        },
+        "azuremonitorlogs": {
+          "id": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/providers/Microsoft.Web/locations/centralus/managedApis/azuremonitorlogs",
+          "connectionId": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_CyberOperations/providers/Microsoft.Web/connections/azuremonitorlogs",
+          "connectionName": "azuremonitorlogs",
+          "connectionProperties": {
+            "authentication": {
+              "type": "ManagedServiceIdentity",
+              "identity": "/subscriptions/de46bab3-a956-4eb7-a983-8e4d98aa343d/resourceGroups/CUS_IdentitySecurity/providers/Microsoft.ManagedIdentity/userAssignedIdentities/CyberAutomationMI"
+            }
+          }
+        }
+      }
+    }
+  }
+}
